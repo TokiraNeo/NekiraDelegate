@@ -42,22 +42,7 @@ namespace NekiraDelegate
 
         }
 
-        // Binding a Global Funciton.
-        void BindFunction( RT( FuncPtr* )( Args... ) )
-        {
-            CallableObj.reset();
 
-            CallableObj = std::make_shared< ICallable<RT, Args...> >( FuncPtr );
-        }
-
-        // Binding a normal Member Function.
-        template <typename ClassType>
-        void BindFunction( RT( ClassType::FuncPtr* )( Args... ) )
-        {
-            CallableObj.reset();
-
-            CallableObj = std::make_shared< ICallable<ClassType, RT, Args...> >( FuncPtr );
-        }
 
     private:
         std::shared_ptr< ICallableBase<RT, Args...> > CallableObj;
