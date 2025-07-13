@@ -206,6 +206,8 @@ namespace NekiraDelegate
     }
 
     // Function Object
-    template <typename Callable>
+    // [TODO] 如何创建支持函数对象的ICallableBase？？难点主要是没法把元组作为模板参数包传入。
+
+
 
 } // namespace NekiraDelegate

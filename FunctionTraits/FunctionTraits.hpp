@@ -85,6 +85,7 @@ namespace NekiraDelegate
         using ObjectType = ClassType;
         using ArgsTuple = std::tuple<Args...>;
     };
+
     // 特化：函数对象、lambda表达式
     template <typename Callable>
     struct Function_Traits<Callable, std::enable_if_t< std::is_class_v<Callable> > > : Function_Traits<decltype( &Callable::operator() )>
