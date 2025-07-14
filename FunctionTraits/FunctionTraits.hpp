@@ -103,6 +103,33 @@ namespace NekiraDelegate
 
 
 
+
+namespace NekiraDelegate
+{
+    // =============================================== Tuple展开 =============================================== //
+    // 将Tuple展开成参数包
+
+    // TupleToArgs_Impl：默认实现
+    template <typename Tuple, typename... Indexes>
+    struct TupleToArgs_Impl
+    {
+    };
+
+    // TupleToArgs_Impl：特化实现，接收一个索引序列
+    template <typename Tuple, std::size_t... Indexes>
+    struct TupleToArgs_Impl < Tuple, std::index_sequence<Indexes...> >
+    {
+        using Type = ( std::tuple_element_t<Indexes, Tuple>... );
+    };
+
+    template <typename Tuple>
+    using TupleToArgs = typename TupleToArgs_Impl< Tuple, std::make_index_sequence< std::tuple_size_v<Tuple> > >::Type;
+
+    // [INFO] std::make_index_sequence<3> ，相当于生成一个std::index_sequence<0, 1, 2>
+} // namespace NekiraDelegate
+
+
+
 namespace NekiraDelegate
 {
     // ================================================= 便捷别名和常量 ================================================= //
@@ -119,8 +146,14 @@ namespace NekiraDelegate
     template <typename T>
     using Func_Traits_ArgsTuple = typename Function_Traits<T>::ArgsTuple;
 
+    // 参数类型（展开后的参数包）
+    template <typename T>
+    using Func_Traits_ArgsPack = TupleToArgs< typename Function_Traits<T>::ArgsTuple >;
+
     // 对象类型（成员函数）
     template <typename T>
     using Func_Traits_ObjectType = typename Function_Traits<T>::ObjectType;
 
 } // namespace NekiraDelegate
+
+

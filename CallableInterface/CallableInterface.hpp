@@ -150,8 +150,32 @@ namespace NekiraDelegate
 
     // 特化：函数对象、lambda表达式
     template <typename Callable>
-    struct ICallable< Callable, std::enable_if_t< std::is_class_v<Callable> > > : ICallable<decltype( &Callable::operator() )>
+    struct ICallable< Callable, std::enable_if_t< std::is_class_v<Callable> > > :
+        ICallable
+        <
+        Func_Traits_ReturnType<decltype( &Callable::operator() )>,
+        Func_Traits_ArgsPack<decltype( &Callable::operator() )>
+        >
     {
+        using FuncSignature = decltype( &Callable::operator() );
+        using RT = Func_Traits_ReturnType<FuncSignature>;
+        using ArgsPack = Func_Traits_ArgsPack<FuncSignature>;
+
+        ICallable( Callable callable )
+            : CallableInstance( std::move( callable ) )
+        {
+            static_assert( std::is_class_v<Callable>, "Callable must be a valid class" );
+
+        }
+
+        RT Invoke( ArgsPack... args ) override
+        {
+            return CallableInstance( std::forward<ArgsPack>( args )... );
+        }
+
+    private:
+        Callable CallableInstance;
+
     };
 
     // 特化：std::function
@@ -205,9 +229,13 @@ namespace NekiraDelegate
         return std::make_shared < ICallable < std::function<RT( Args... )> > >( std::move( Function ) );
     }
 
-    // Function Object
-    // [TODO] 如何创建支持函数对象的ICallableBase？？难点主要是没法把元组作为模板参数包传入。
-
-
+    // Function Object、Lambda
+    template < typename Callable, typename FuncSignature = decltype( &Callable::operator() ),
+        typename = std::enable_if_t< std::is_class_v<Callable> > >
+    static std::shared_ptr< ICallableBase< Func_Traits_ReturnType<FuncSignature>, Func_Traits_ArgsPack<FuncSignature> > >
+        MakeCallableBase( Callable callable )
+    {
+        return std::make_shared< ICallable<Callable> >( std::move( callable ) );
+    }
 
 } // namespace NekiraDelegate

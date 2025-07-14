@@ -27,6 +27,7 @@ SOFTWARE.
 #include "../CallableInterface/CallableInterface.hpp"
 
 
+
 namespace NekiraDelegate
 {
     // ============================================== 单播委托 ============================================== //
@@ -35,6 +36,11 @@ namespace NekiraDelegate
     class Delegate
     {
     public:
+        bool IsValid() const
+        {
+            return ( CallableObj != nullptr );
+        }
+
         // Invoke Delegate
         RT Invoke( Args... args )
         {
@@ -42,10 +48,205 @@ namespace NekiraDelegate
 
         }
 
+        // Bind a Global Function
+        void Bind( RT( *FuncPtr )( Args... ) )
+        {
+            CallableObj.reset();
+
+            CallableObj = MakeCallableBase( FuncPtr );
+        }
+
+        // Bind a Member Function
+        template <typename ClassType>
+        void Bind( ClassType* Object, RT( ClassType::* FuncPtr )( Args... ) )
+        {
+            CallableObj.reset();
+
+            CallableObj = MakeCallableBase( Object, FuncPtr );
+        }
+
+        // Bind a const Member Function
+        template <typename ClassType>
+        void Bind( const ClassType* Object, RT( ClassType::* FuncPtr )( Args... ) const )
+        {
+            CallableObj.reset();
+
+            CallableObj = MakeCallableBase( Object, FuncPtr );
+        }
+
+        // Bind a volatile Member Function
+        template <typename ClassType>
+        void Bind( volatile ClassType* Object, RT( ClassType::* FuncPtr )( Args... ) volatile )
+        {
+            CallableObj.reset();
+
+            CallableObj = MakeCallableBase( Object, FuncPtr );
+        }
+
+        // Bind a std::function
+        void Bind( std::function<RT( Args... )> Function )
+        {
+            CallableObj.reset();
+
+            CallableObj = MakeCallableBase( std::move( Function ) );
+        }
+
+        // Bind a Function Object or Lambda
+        template <typename Callable, typename FuncSignature = decltype( &Callable::operator() ),
+            typename = std::enable_if_t< std::is_class_v<Callable> > >
+        void Bind( Callable callable )
+        {
+            CallableObj.reset();
+
+            CallableObj = MakeCallableBase( std::move( callable ) );
+        }
 
 
     private:
         std::shared_ptr< ICallableBase<RT, Args...> > CallableObj;
+    };
+
+} // namespace NekiraDelegate
+
+
+
+namespace NekiraDelegate
+{
+    // ============================================== Delegate Handle ============================================== //
+
+    struct DelegateHandle
+    {
+        void* OwnerContext; // 用于标识委托的拥有者上下文,通常是多播委托
+
+        std::size_t Id;
+
+        bool operator==( const DelegateHandle& Other ) const
+        {
+            return ( OwnerContext == Other.OwnerContext && Id == Other.Id );
+        }
+    };
+
+} // namespace NekiraDelegate
+
+
+
+namespace NekiraDelegate
+{
+    // ============================================== 多播委托 ============================================== //
+
+    template <typename RT, typename... Args>
+    class MulticastDelegate
+    {
+    public:
+        // Broadcast to all bound delegates
+        void Broadcast( Args... args )
+        {
+            for ( const auto& delegatePair : Delegates )
+            {
+                if ( delegatePair.second.IsValid() )
+                {
+                    delegatePair.second.Invoke( std::forward<Args>( args )... );
+                }
+            }
+        }
+
+        // Remove a delegate by its handle
+        void Remove( const DelegateHandle& handle )
+        {
+            auto it = std::remove_if
+            (
+                Delegates.begin(), Delegates.end(),
+                [ &handle ]( const DelegatePair& pair ) { return pair.first == handle; }
+            );
+
+            if ( it != Delegates.end() )
+            {
+                Delegates.erase( it, Delegates.end() );
+            }
+        }
+
+        // Add a delegate to the multicast delegate
+        DelegateHandle Add( const Delegate<RT, Args...>& delegate )
+        {
+            DelegateHandle handle{ this, DelegateIDCounter + 1 };
+
+            Delegates.emplace_back( handle, std::move( delegate ) );
+
+            return handle;
+        }
+
+        // Add a Normal Function
+        DelegateHandle Add( RT( *FuncPtr )( Args... ) )
+        {
+            Delegate<RT, Args...> delegate;
+            delegate.Bind( FuncPtr );
+            DelegateHandle handle{ this, DelegateIDCounter + 1 };
+            Delegates.emplace_back( handle, std::move( delegate ) );
+            return handle;
+        }
+
+        // Add a Member Function
+        template <typename ClassType>
+        DelegateHandle Add( ClassType* Object, RT( ClassType::* FuncPtr )( Args... ) )
+        {
+            Delegate<RT, Args...> delegate;
+            delegate.Bind( Object, FuncPtr );
+            DelegateHandle handle{ this, DelegateIDCounter + 1 };
+            Delegates.emplace_back( handle, std::move( delegate ) );
+            return handle;
+        }
+
+        // Add a const Member Function
+        template <typename ClassType>
+        DelegateHandle Add( const ClassType* Object, RT( ClassType::* FuncPtr )( Args... ) const )
+        {
+            Delegate<RT, Args...> delegate;
+            delegate.Bind( Object, FuncPtr );
+            DelegateHandle handle{ this, DelegateIDCounter + 1 };
+            Delegates.emplace_back( handle, std::move( delegate ) );
+            return handle;
+        }
+
+        // Add a volatile Member Function
+        template <typename ClassType>
+        DelegateHandle Add( volatile ClassType* Object, RT( ClassType::* FuncPtr )( Args... ) volatile )
+        {
+            Delegate<RT, Args...> delegate;
+            delegate.Bind( Object, FuncPtr );
+            DelegateHandle handle{ this, DelegateIDCounter + 1 };
+            Delegates.emplace_back( handle, std::move( delegate ) );
+            return handle;
+        }
+
+        // Add a std::function
+        DelegateHandle Add( std::function<RT( Args... )> Function )
+        {
+            Delegate<RT, Args...> delegate;
+            delegate.Bind( std::move( Function ) );
+            DelegateHandle handle{ this, DelegateIDCounter + 1 };
+            Delegates.emplace_back( handle, std::move( delegate ) );
+            return handle;
+        }
+
+        // Add a Function Object or Lambda
+        template <typename Callable, typename FuncSignature = decltype( &Callable::operator() ),
+            typename = std::enable_if_t< std::is_class_v<Callable> > >
+        DelegateHandle Add( Callable callable )
+        {
+            Delegate<RT, Args...> delegate;
+            delegate.Bind( std::move( callable ) );
+            DelegateHandle handle{ this, DelegateIDCounter + 1 };
+            Delegates.emplace_back( handle, std::move( delegate ) );
+            return handle;
+        }
+
+    private:
+        using DelegatePair = std::pair< DelegateHandle, Delegate<RT, Args...> >;
+        std::vector < DelegatePair > Delegates;
+
+        // Generate a new unique handle for the delegate
+        std::size_t DelegateIDCounter = 0;
+
     };
 
 } // namespace NekiraDelegate
