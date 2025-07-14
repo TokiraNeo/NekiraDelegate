@@ -24,4 +24,88 @@ SOFTWARE.
 
 
 #include <iostream>
+#include <string>
 #include "../Delegate/Delegate.hpp"
+
+using namespace NekiraDelegate;
+
+
+static void GlobalFunc( float a, const std::string& str )
+{
+    std::cout << "GlobalFunc called with: " << a << ", " << str << std::endl;
+}
+
+auto LambdaFunc = [ ]( float a, const std::string& str )
+    {
+        std::cout << "LambdaFunc called with: " << a << ", " << str << std::endl;
+    };
+
+class TestClass
+{
+public:
+    void Func( float a, const std::string& str )
+    {
+        std::cout << "TestClass::Func called with: " << a << ", " << str << std::endl;
+    }
+
+    void ConstFunc( float a, const std::string& str ) const
+    {
+        std::cout << "TestClass::ConstFunc called with: " << a << ", " << str << std::endl;
+    }
+
+    void VolatileFunc( float a, const std::string& str ) volatile
+    {
+        std::cout << "TestClass::VolatileFunc called with: " << a << ", " << str << std::endl;
+    }
+};
+
+struct FuncObject
+{
+    void operator()( float x, const std::string& str ) const
+    {
+        std::cout << "FuncObject called with: " << x << ", " << str << std::endl;
+    }
+};
+
+std::function<void( float, const std::string& )> StdFunc = [ ]( float x, const std::string& str )
+    {
+        std::cout << "StdFunc called with: " << x << ", " << str << std::endl;
+
+    };
+
+
+DECLARE_MULTICAST_DELEGATE( MultiSignature, void, float, const std::string& );
+
+
+
+
+int main()
+{
+    TestClass ClassObj;
+    FuncObject FuncObj;
+
+
+    MultiSignature MultiDelegate;
+
+    // 普通函数绑定
+    MultiDelegate.Add( GlobalFunc );
+
+    // Lambda 绑定
+    MultiDelegate.Add( LambdaFunc );
+
+    // 成员函数绑定
+    MultiDelegate.Add( &ClassObj, &TestClass::Func );
+    MultiDelegate.Add( &ClassObj, &TestClass::ConstFunc );
+    MultiDelegate.Add( &ClassObj, &TestClass::VolatileFunc );
+
+    // 函数对象绑定
+    MultiDelegate.Add( FuncObj );
+
+    // std::function 绑定
+    MultiDelegate.Add( StdFunc );
+
+    // 广播调用
+    MultiDelegate.Broadcast( 35.2f, { "Tokira" } );
+
+    return 0;
+}

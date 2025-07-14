@@ -28,6 +28,10 @@ SOFTWARE.
 
 
 
+
+
+
+
 namespace NekiraDelegate
 {
     // ============================================== 单播委托 ============================================== //
@@ -92,8 +96,7 @@ namespace NekiraDelegate
         }
 
         // Bind a Function Object or Lambda
-        template <typename Callable, typename FuncSignature = decltype( &Callable::operator() ),
-            typename = std::enable_if_t< std::is_class_v<Callable> > >
+        template <typename Callable, typename = std::enable_if_t< std::is_class_v<Callable> > >
         void Bind( Callable callable )
         {
             CallableObj.reset();
@@ -141,7 +144,7 @@ namespace NekiraDelegate
         // Broadcast to all bound delegates
         void Broadcast( Args... args )
         {
-            for ( const auto& delegatePair : Delegates )
+            for ( auto& delegatePair : Delegates )
             {
                 if ( delegatePair.second.IsValid() )
                 {
@@ -250,3 +253,19 @@ namespace NekiraDelegate
     };
 
 } // namespace NekiraDelegate
+
+
+// ================================================== Helper Macros ================================================== //
+
+// Declare a Delegate with a specific name and signature
+#ifndef DECLARE_DELEGATE
+#define DECLARE_DELEGATE( DelegateName, ReturnType, ... ) \
+    using DelegateName = NekiraDelegate::Delegate<ReturnType, __VA_ARGS__>
+#endif // DECLARE_DELEGATE
+
+#ifndef DECLARE_MULTICAST_DELEGATE
+#define DECLARE_MULTICAST_DELEGATE( DelegateName, ReturnType, ... ) \
+    using DelegateName = NekiraDelegate::MulticastDelegate<ReturnType, __VA_ARGS__>
+#endif // DECLARE_MULTICAST_DELEGATE
+
+
