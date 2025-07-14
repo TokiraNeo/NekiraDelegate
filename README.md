@@ -31,7 +31,7 @@ NekiraDelegate 是基于 C++的委托系统，包含了单播委托与多播委�
 
 文件结构分为四个部分：
 
-- `FunctionTraits/` ： 函数萃取相关实现
+- `FunctionTraits/` ： 函数萃取相关实现，可辅助 static_assert() 进行静态检查
 
 - `CallableInterface/` ：类型擦除实现，实现了对普通函数、成员函数(包括 const，volatile)、函数对象、Lambda、std::function<>的支持
 

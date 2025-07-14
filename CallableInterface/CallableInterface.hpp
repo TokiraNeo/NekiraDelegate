@@ -26,7 +26,7 @@ SOFTWARE.
 
 #include <functional>
 #include <memory>
-#include "../FunctionTraits/FunctionTraits.hpp"
+
 
 namespace NekiraDelegate
 {
