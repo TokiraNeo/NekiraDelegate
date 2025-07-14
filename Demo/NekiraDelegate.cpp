@@ -29,7 +29,6 @@ SOFTWARE.
 
 using namespace NekiraDelegate;
 
-
 static void GlobalFunc( float a, const std::string& str )
 {
     std::cout << "GlobalFunc called with: " << a << ", " << str << std::endl;
@@ -74,38 +73,48 @@ std::function<void( float, const std::string& )> StdFunc = [ ]( float x, const s
     };
 
 
+// 声明多播委托类型
 DECLARE_MULTICAST_DELEGATE( MultiSignature, void, float, const std::string& );
 
-
-
+// 声明单播委托类型
+DECLARE_DELEGATE( SingleSignature, void, float, const std::string& );
 
 int main()
 {
     TestClass ClassObj;
     FuncObject FuncObj;
 
-
-    MultiSignature MultiDelegate;
-
+    // 创建单播委托实例
+    SingleSignature SingleDelegate;
+    std::cout << "单播委托测试：" << std::endl;
     // 普通函数绑定
-    MultiDelegate.Add( GlobalFunc );
-
-    // Lambda 绑定
-    MultiDelegate.Add( LambdaFunc );
-
+    SingleDelegate.Bind( GlobalFunc );
+    SingleDelegate.Invoke( 1.0f, "Tokira" );
     // 成员函数绑定
+    SingleDelegate.Bind( &ClassObj, &TestClass::ConstFunc );
+    SingleDelegate.Invoke( 2.0f, "Tokira" );
+    // Lambda绑定
+    SingleDelegate.Bind( LambdaFunc );
+    SingleDelegate.Invoke( 3.0f, "Tokira" );
+
+    // 创建多播委托实例
+    MultiSignature MultiDelegate;
+    std::cout << "\n多播委托测试：" << std::endl;
+    // 添加普通函数
+    MultiDelegate.Add( GlobalFunc );
+    // 添加成员函数
     MultiDelegate.Add( &ClassObj, &TestClass::Func );
-    MultiDelegate.Add( &ClassObj, &TestClass::ConstFunc );
     MultiDelegate.Add( &ClassObj, &TestClass::VolatileFunc );
-
-    // 函数对象绑定
+    MultiDelegate.Add( &ClassObj, &TestClass::ConstFunc );
+    // 添加 Lambda
+    MultiDelegate.Add( LambdaFunc );
+    // 添加函数对象
     MultiDelegate.Add( FuncObj );
-
-    // std::function 绑定
+    // 添加 std::function
     MultiDelegate.Add( StdFunc );
 
     // 广播调用
-    MultiDelegate.Broadcast( 35.2f, { "Tokira" } );
+    MultiDelegate.Broadcast( 10.0f, "Nekira" );
 
     return 0;
 }
