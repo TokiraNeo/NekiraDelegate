@@ -47,14 +47,14 @@ namespace NekiraDelegate
 {
 
     // 可调用接口的默认实现
-    template <typename Callable, typename = void>
+    template <typename Callable>
     struct ICallable
     {
     };
 
     // 特化：普通函数指针
     template <typename RT, typename... Args>
-    struct ICallable<RT( * )( Args... ), void> : ICallableBase<RT, Args...>
+    struct ICallable<RT( * )( Args... )> : ICallableBase<RT, Args...>
     {
         using FuncSignature = RT( * )( Args... );
 
@@ -74,7 +74,7 @@ namespace NekiraDelegate
 
     // 特化：成员函数指针
     template <typename ClassType, typename RT, typename... Args>
-    struct ICallable<RT( ClassType::* )( Args... ), void> : ICallableBase<RT, Args...>
+    struct ICallable<RT( ClassType::* )( Args... )> : ICallableBase<RT, Args...>
     {
         using FuncSignature = RT( ClassType::* )( Args... );
 
@@ -99,7 +99,7 @@ namespace NekiraDelegate
 
     // 特化：const成员函数指针
     template <typename ClassType, typename RT, typename... Args>
-    struct ICallable<RT( ClassType::* )( Args... ) const, void> : ICallableBase<RT, Args...>
+    struct ICallable<RT( ClassType::* )( Args... ) const> : ICallableBase<RT, Args...>
     {
         using FuncSignature = RT( ClassType::* )( Args... ) const;
 
@@ -124,7 +124,7 @@ namespace NekiraDelegate
 
     // 特化：volatile成员函数
     template <typename ClassType, typename RT, typename... Args>
-    struct ICallable<RT( ClassType::* )( Args... ) volatile, void> : ICallableBase<RT, Args...>
+    struct ICallable<RT( ClassType::* )( Args... ) volatile> : ICallableBase<RT, Args...>
     {
         using FuncSignature = RT( ClassType::* )( Args... ) volatile;
 
@@ -149,11 +149,11 @@ namespace NekiraDelegate
 
     // 特化：std::function
     template <typename RT, typename... Args>
-    struct ICallable<std::function<RT( Args... )>, void> : ICallableBase< RT, Args... >
+    struct ICallable<std::function<RT( Args... )>> : ICallableBase< RT, Args... >
     {
         using FuncSignature = std::function<RT( Args... )>;
 
-        ICallable( FuncSignature function )
+        ICallable( FuncSignature&& function )
             : Function( std::move( function ) )
         {
         }
@@ -183,8 +183,8 @@ namespace NekiraDelegate
     template <typename ClassType, typename RT, typename... Args>
     struct ICallableWrapper< ClassType, RT( ClassType::* )( Args... ) > : ICallableBase<RT, Args...>
     {
-        ICallableWrapper( ClassType Obj )
-            : CallableObj( Obj )
+        ICallableWrapper( ClassType&& Obj )
+            : CallableObj( std::move( Obj ) )
         {
             static_assert( std::is_class_v<ClassType>, "ClassType must be a valid class" );
         }
@@ -200,8 +200,8 @@ namespace NekiraDelegate
     template <typename ClassType, typename RT, typename... Args>
     struct ICallableWrapper< ClassType, RT( ClassType::* )( Args... ) const> : ICallableBase<RT, Args...>
     {
-        ICallableWrapper( ClassType Obj )
-            : CallableObj( Obj )
+        ICallableWrapper( ClassType&& Obj )
+            : CallableObj( std::move( Obj ) )
         {
             static_assert( std::is_class_v<ClassType>, "ClassType must be a valid class" );
         }
@@ -217,8 +217,8 @@ namespace NekiraDelegate
     template <typename ClassType, typename RT, typename... Args>
     struct ICallableWrapper< ClassType, RT( ClassType::* )( Args... ) volatile> : ICallableBase<RT, Args...>
     {
-        ICallableWrapper( ClassType Obj )
-            : CallableObj( Obj )
+        ICallableWrapper( ClassType&& Obj )
+            : CallableObj( std::move( Obj ) )
         {
             static_assert( std::is_class_v<ClassType>, "ClassType must be a valid class" );
         }
@@ -270,14 +270,14 @@ namespace NekiraDelegate
 
     // std::function
     template < typename RT, typename... Args >
-    static std::shared_ptr< ICallableBase<RT, Args...> > MakeCallableBase( std::function< RT( Args... ) > Function )
+    static std::shared_ptr< ICallableBase<RT, Args...> > MakeCallableBase( std::function< RT( Args... ) >&& Function )
     {
         return std::make_shared < ICallable < std::function<RT( Args... )> > >( std::move( Function ) );
     }
 
     // Function Object、Lambda
     template <typename Callable, typename = std::enable_if_t< std::is_class_v<Callable> > >
-    static auto MakeCallableBase( Callable callable )
+    static auto MakeCallableBase( Callable&& callable )
     {
         return std::make_shared< ICallableWrapper<Callable> >( std::move( callable ) );
     }
