@@ -23,7 +23,7 @@ SOFTWARE.
 */
 
 #pragma once
-
+#include <algorithm>
 #include "../CallableInterface/CallableInterface.hpp"
 
 
@@ -260,12 +260,12 @@ namespace NekiraDelegate
 // Declare a Delegate with a specific name and signature
 #ifndef DECLARE_DELEGATE
 #define DECLARE_DELEGATE( DelegateName, ReturnType, ... ) \
-    using DelegateName = NekiraDelegate::Delegate<ReturnType, __VA_ARGS__>
+    using DelegateName = NekiraDelegate::Delegate<ReturnType, __VA_ARGS__>;
 #endif // DECLARE_DELEGATE
 
 #ifndef DECLARE_MULTICAST_DELEGATE
 #define DECLARE_MULTICAST_DELEGATE( DelegateName, ReturnType, ... ) \
-    using DelegateName = NekiraDelegate::MulticastDelegate<ReturnType, __VA_ARGS__>
+    using DelegateName = NekiraDelegate::MulticastDelegate<ReturnType, __VA_ARGS__>;
 #endif // DECLARE_MULTICAST_DELEGATE
 
 

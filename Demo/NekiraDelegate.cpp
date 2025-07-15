@@ -31,12 +31,12 @@ using namespace NekiraDelegate;
 
 static void GlobalFunc( float a, const std::string& str )
 {
-    std::cout << "GlobalFunc called with: " << a << ", " << str << std::endl;
+    std::cout << "GlobalFunc called with: " << a << ", " << str << "\n";
 }
 
 auto LambdaFunc = [ ]( float a, const std::string& str )
     {
-        std::cout << "LambdaFunc called with: " << a << ", " << str << std::endl;
+        std::cout << "LambdaFunc called with: " << a << ", " << str << "\n";
     };
 
 class TestClass
@@ -44,17 +44,17 @@ class TestClass
 public:
     void Func( float a, const std::string& str )
     {
-        std::cout << "TestClass::Func called with: " << a << ", " << str << std::endl;
+        std::cout << "TestClass::Func called with: " << a << ", " << str << "\n";
     }
 
     void ConstFunc( float a, const std::string& str ) const
     {
-        std::cout << "TestClass::ConstFunc called with: " << a << ", " << str << std::endl;
+        std::cout << "TestClass::ConstFunc called with: " << a << ", " << str << "\n";
     }
 
     void VolatileFunc( float a, const std::string& str ) volatile
     {
-        std::cout << "TestClass::VolatileFunc called with: " << a << ", " << str << std::endl;
+        std::cout << "TestClass::VolatileFunc called with: " << a << ", " << str << "\n";
     }
 };
 
@@ -62,22 +62,21 @@ struct FuncObject
 {
     void operator()( float x, const std::string& str ) const
     {
-        std::cout << "FuncObject called with: " << x << ", " << str << std::endl;
+        std::cout << "FuncObject called with: " << x << ", " << str << "\n";
     }
 };
 
 std::function<void( float, const std::string& )> StdFunc = [ ]( float x, const std::string& str )
     {
-        std::cout << "StdFunc called with: " << x << ", " << str << std::endl;
-
+        std::cout << "StdFunc called with: " << x << ", " << str << "\n";
     };
 
 
 // 声明多播委托类型
-DECLARE_MULTICAST_DELEGATE( MultiSignature, void, float, const std::string& );
+DECLARE_MULTICAST_DELEGATE( MultiSignature, void, float, const std::string& )
 
 // 声明单播委托类型
-DECLARE_DELEGATE( SingleSignature, void, float, const std::string& );
+DECLARE_DELEGATE( SingleSignature, void, float, const std::string& )
 
 int main()
 {
@@ -86,7 +85,7 @@ int main()
 
     // 创建单播委托实例
     SingleSignature SingleDelegate;
-    std::cout << "单播委托测试：" << std::endl;
+    std::cout << "单播委托测试：\n";
     // 普通函数绑定
     SingleDelegate.Bind( GlobalFunc );
     SingleDelegate.Invoke( 1.0f, "Tokira" );
@@ -99,7 +98,8 @@ int main()
 
     // 创建多播委托实例
     MultiSignature MultiDelegate;
-    std::cout << "\n多播委托测试：" << std::endl;
+    std::cout << "\n";
+    std::cout << "多播委托测试：\n";
     // 添加普通函数
     MultiDelegate.Add( GlobalFunc );
     // 添加成员函数
