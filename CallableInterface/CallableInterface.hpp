@@ -41,12 +41,7 @@ namespace NekiraDelegate
     };
 } // namespace NekiraDelegate
 
-namespace NekiraDelegate
-{
-    // 用于将Tuple展开，构造ICallable<RT, Args...>类型
-    template <typename RT, typename Tuple>
-    struct ICallableBaseFromTuple;
-}
+
 
 namespace NekiraDelegate
 {
