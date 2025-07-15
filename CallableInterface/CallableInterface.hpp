@@ -81,15 +81,11 @@ namespace NekiraDelegate
         ICallable( ClassType* objPtr, FuncSignature funcPtr )
             : ObjectPtr( objPtr ), FuncPtr( funcPtr )
         {
-            static_assert( std::is_class_v<ClassType>, "ClassType must be a valid class" );
-
-            static_assert( std::is_member_function_pointer_v<FuncSignature>,
-                "FuncSignature must be a valid member function pointer" );
         }
 
         RT Invoke( Args... args ) override
         {
-            return ( ObjectPtr->*FuncPtr )( std::forward<Args>( args )... );
+            return ObjectPtr ? ( ObjectPtr->*FuncPtr )( std::forward<Args>( args )... ) : RT{};
         }
 
     private:
@@ -106,15 +102,11 @@ namespace NekiraDelegate
         ICallable( const ClassType* objPtr, FuncSignature funcPtr )
             : ObjectPtr( objPtr ), FuncPtr( funcPtr )
         {
-            static_assert( std::is_class_v<ClassType>, "ClassType must be a valid class" );
-
-            static_assert( std::is_member_function_pointer_v<FuncSignature>,
-                "FuncSignature must be a valid member function pointer" );
         }
 
         RT Invoke( Args... args ) override
         {
-            return ( ObjectPtr->*FuncPtr )( std::forward<Args>( args )... );
+            return ObjectPtr ? ( ObjectPtr->*FuncPtr )( std::forward<Args>( args )... ) : RT{};
         }
 
     private:
@@ -131,15 +123,11 @@ namespace NekiraDelegate
         ICallable( volatile ClassType* objPtr, FuncSignature funcPtr )
             : ObjectPtr( objPtr ), FuncPtr( funcPtr )
         {
-            static_assert( std::is_class_v<ClassType>, "ClassType must be a valid class" );
-
-            static_assert( std::is_member_function_pointer_v<FuncSignature>,
-                "FuncSignature must be a valid member function pointer" );
         }
 
         RT Invoke( Args... args ) override
         {
-            return ( ObjectPtr->*FuncPtr )( std::forward<Args>( args )... );
+            return ObjectPtr ? ( ObjectPtr->*FuncPtr )( std::forward<Args>( args )... ) : RT{};
         }
 
     private:
@@ -152,6 +140,11 @@ namespace NekiraDelegate
     struct ICallable<std::function<RT( Args... )>> : ICallableBase< RT, Args... >
     {
         using FuncSignature = std::function<RT( Args... )>;
+
+        ICallable( const FuncSignature& function )
+            : Function( function )
+        {
+        }
 
         ICallable( FuncSignature&& function )
             : Function( std::move( function ) )
@@ -183,10 +176,14 @@ namespace NekiraDelegate
     template <typename ClassType, typename RT, typename... Args>
     struct ICallableWrapper< ClassType, RT( ClassType::* )( Args... ) > : ICallableBase<RT, Args...>
     {
+        ICallableWrapper( const ClassType& Obj )
+            : CallableObj( Obj )
+        {
+        }
+
         ICallableWrapper( ClassType&& Obj )
             : CallableObj( std::move( Obj ) )
         {
-            static_assert( std::is_class_v<ClassType>, "ClassType must be a valid class" );
         }
 
         RT Invoke( Args... args ) override
@@ -200,10 +197,14 @@ namespace NekiraDelegate
     template <typename ClassType, typename RT, typename... Args>
     struct ICallableWrapper< ClassType, RT( ClassType::* )( Args... ) const> : ICallableBase<RT, Args...>
     {
+        ICallableWrapper( const ClassType& Obj )
+            : CallableObj( Obj )
+        {
+        }
+
         ICallableWrapper( ClassType&& Obj )
             : CallableObj( std::move( Obj ) )
         {
-            static_assert( std::is_class_v<ClassType>, "ClassType must be a valid class" );
         }
 
         RT Invoke( Args... args ) override
@@ -217,10 +218,14 @@ namespace NekiraDelegate
     template <typename ClassType, typename RT, typename... Args>
     struct ICallableWrapper< ClassType, RT( ClassType::* )( Args... ) volatile> : ICallableBase<RT, Args...>
     {
+        ICallableWrapper( const ClassType& Obj )
+            : CallableObj( Obj )
+        {
+        }
+
         ICallableWrapper( ClassType&& Obj )
             : CallableObj( std::move( Obj ) )
         {
-            static_assert( std::is_class_v<ClassType>, "ClassType must be a valid class" );
         }
 
         RT Invoke( Args... args ) override
@@ -268,7 +273,14 @@ namespace NekiraDelegate
         return std::make_shared < ICallable< RT( ClassType::* )( Args... ) volatile > >( Object, FuncPtr );
     }
 
-    // std::function
+    // std::function (Left Reference)
+    template < typename RT, typename... Args >
+    static std::shared_ptr< ICallableBase<RT, Args...> > MakeCallableBase( const std::function< RT( Args... ) >& Function )
+    {
+        return std::make_shared < ICallable < std::function<RT( Args... )> > >( Function );
+    }
+
+    // std::function (Right Reference)
     template < typename RT, typename... Args >
     static std::shared_ptr< ICallableBase<RT, Args...> > MakeCallableBase( std::function< RT( Args... ) >&& Function )
     {
@@ -276,10 +288,13 @@ namespace NekiraDelegate
     }
 
     // Function Object、Lambda
-    template <typename Callable, typename = std::enable_if_t< std::is_class_v<Callable> > >
+    template <typename Callable> requires std::is_class_v< std::remove_reference_t<Callable> >
     static auto MakeCallableBase( Callable&& callable )
     {
-        return std::make_shared< ICallableWrapper<Callable> >( std::move( callable ) );
+        using RowType = std::remove_reference_t<Callable>;
+        using CallableWrapperType = ICallableWrapper<RowType>;
+
+        return std::make_shared< CallableWrapperType >( std::forward<Callable>( callable ) );
     }
 
 } // namespace NekiraDelegate

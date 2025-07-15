@@ -87,8 +87,16 @@ namespace NekiraDelegate
             CallableObj = MakeCallableBase( Object, FuncPtr );
         }
 
-        // Bind a std::function
-        void Bind( std::function<RT( Args... )> Function )
+        // Bind a std::function (Left Reference)
+        void Bind( const std::function<RT( Args... )>& Function )
+        {
+            CallableObj.reset();
+
+            CallableObj = MakeCallableBase( Function );
+        }
+
+        // Bind a std::function (Right Reference)
+        void Bind( std::function<RT( Args... )>&& Function )
         {
             CallableObj.reset();
 
@@ -96,12 +104,13 @@ namespace NekiraDelegate
         }
 
         // Bind a Function Object or Lambda
-        template <typename Callable, typename = std::enable_if_t< std::is_class_v<Callable> > >
-        void Bind( Callable callable )
+        template <typename Callable>
+            requires std::is_class_v< std::remove_reference_t<Callable> >
+        void Bind( Callable&& callable )
         {
             CallableObj.reset();
 
-            CallableObj = MakeCallableBase( std::move( callable ) );
+            CallableObj = MakeCallableBase( std::forward<Callable>( callable ) );
         }
 
 
@@ -221,8 +230,18 @@ namespace NekiraDelegate
             return handle;
         }
 
-        // Add a std::function
-        DelegateHandle Add( std::function<RT( Args... )> Function )
+        // Add a std::function (Left Reference)
+        DelegateHandle Add( const std::function<RT( Args... )>& Function )
+        {
+            Delegate<RT, Args...> delegate;
+            delegate.Bind( Function );
+            DelegateHandle handle{ this, DelegateIDCounter + 1 };
+            Delegates.emplace_back( handle, std::move( delegate ) );
+            return handle;
+        }
+
+        // Add a std::function (Right Reference)
+        DelegateHandle Add( std::function<RT( Args... )>&& Function )
         {
             Delegate<RT, Args...> delegate;
             delegate.Bind( std::move( Function ) );
@@ -232,16 +251,17 @@ namespace NekiraDelegate
         }
 
         // Add a Function Object or Lambda
-        template <typename Callable, typename FuncSignature = decltype( &Callable::operator() ),
-            typename = std::enable_if_t< std::is_class_v<Callable> > >
-        DelegateHandle Add( Callable callable )
+        template <typename Callable>
+            requires std::is_class_v< std::remove_reference_t<Callable> >
+        DelegateHandle Add( Callable&& callable )
         {
             Delegate<RT, Args...> delegate;
-            delegate.Bind( std::move( callable ) );
+            delegate.Bind( std::forward<Callable>( callable ) );
             DelegateHandle handle{ this, DelegateIDCounter + 1 };
             Delegates.emplace_back( handle, std::move( delegate ) );
             return handle;
         }
+
 
     private:
         using DelegatePair = std::pair< DelegateHandle, Delegate<RT, Args...> >;
