@@ -38,6 +38,9 @@ namespace NekiraDelegate
 
         // 统一的调用接口
         virtual RT Invoke( Args... args ) = 0;
+
+        // 检查是否有效
+        virtual bool IsValid() const = 0;
     };
 } // namespace NekiraDelegate
 
@@ -68,6 +71,10 @@ namespace NekiraDelegate
             return FuncPtr( std::forward<Args>( args )... );
         }
 
+        virtual bool IsValid() const override
+        {
+            return FuncPtr != nullptr;
+        }
     private:
         FuncSignature FuncPtr;
     };
@@ -78,18 +85,26 @@ namespace NekiraDelegate
     {
         using FuncSignature = RT( ClassType::* )( Args... );
 
-        ICallable( ClassType* objPtr, FuncSignature funcPtr )
+        ICallable( std::shared_ptr<ClassType> objPtr, FuncSignature funcPtr )
             : ObjectPtr( objPtr ), FuncPtr( funcPtr )
         {
         }
 
         RT Invoke( Args... args ) override
         {
-            return ObjectPtr ? ( ObjectPtr->*FuncPtr )( std::forward<Args>( args )... ) : RT{};
+            if ( auto obj = ObjectPtr.lock() )
+            {
+                return ( obj.get()->*FuncPtr )( std::forward<Args>( args )... );
+            }
+            return RT{};
         }
 
+        virtual bool IsValid() const override
+        {
+            return !ObjectPtr.expired() && FuncPtr != nullptr;
+        }
     private:
-        ClassType* ObjectPtr;
+        std::weak_ptr<ClassType> ObjectPtr;
         FuncSignature FuncPtr;
     };
 
@@ -99,18 +114,27 @@ namespace NekiraDelegate
     {
         using FuncSignature = RT( ClassType::* )( Args... ) const;
 
-        ICallable( const ClassType* objPtr, FuncSignature funcPtr )
+
+        ICallable( std::shared_ptr<const ClassType> objPtr, FuncSignature funcPtr )
             : ObjectPtr( objPtr ), FuncPtr( funcPtr )
         {
         }
 
         RT Invoke( Args... args ) override
         {
-            return ObjectPtr ? ( ObjectPtr->*FuncPtr )( std::forward<Args>( args )... ) : RT{};
+            if ( auto obj = ObjectPtr.lock() )
+            {
+                return ( obj.get()->*FuncPtr )( std::forward<Args>( args )... );
+            }
+            return RT{};
         }
 
+        virtual bool IsValid() const override
+        {
+            return !ObjectPtr.expired() && FuncPtr != nullptr;
+        }
     private:
-        const ClassType* ObjectPtr;
+        std::weak_ptr<const ClassType> ObjectPtr;
         FuncSignature FuncPtr;
     };
 
@@ -120,18 +144,27 @@ namespace NekiraDelegate
     {
         using FuncSignature = RT( ClassType::* )( Args... ) volatile;
 
-        ICallable( volatile ClassType* objPtr, FuncSignature funcPtr )
+
+        ICallable( std::shared_ptr<volatile ClassType> objPtr, FuncSignature funcPtr )
             : ObjectPtr( objPtr ), FuncPtr( funcPtr )
         {
         }
 
         RT Invoke( Args... args ) override
         {
-            return ObjectPtr ? ( ObjectPtr->*FuncPtr )( std::forward<Args>( args )... ) : RT{};
+            if ( auto obj = ObjectPtr.lock() )
+            {
+                return ( obj.get()->*FuncPtr )( std::forward<Args>( args )... );
+            }
+            return RT{};
         }
 
+        virtual bool IsValid() const override
+        {
+            return !ObjectPtr.expired() && FuncPtr != nullptr;
+        }
     private:
-        volatile ClassType* ObjectPtr;
+        std::weak_ptr<volatile ClassType> ObjectPtr;
         FuncSignature FuncPtr;
     };
 
@@ -154,6 +187,11 @@ namespace NekiraDelegate
         RT Invoke( Args... args ) override
         {
             return Function( std::forward<Args>( args )... );
+        }
+
+        virtual bool IsValid() const override
+        {
+            return static_cast< bool >( Function );
         }
 
     private:
@@ -190,6 +228,12 @@ namespace NekiraDelegate
         {
             CallableObj( std::forward<Args>( args )... );
         }
+
+        virtual bool IsValid() const override
+        {
+            return true;
+        }
+
     private:
         ClassType CallableObj;
     };
@@ -210,6 +254,11 @@ namespace NekiraDelegate
         RT Invoke( Args... args ) override
         {
             CallableObj( std::forward<Args>( args )... );
+        }
+
+        virtual bool IsValid() const override
+        {
+            return true;
         }
     private:
         ClassType CallableObj;
@@ -232,6 +281,11 @@ namespace NekiraDelegate
         {
             CallableObj( std::forward<Args>( args )... );
         }
+
+        virtual bool IsValid() const override
+        {
+            return true;
+        }
     private:
         ClassType CallableObj;
     };
@@ -239,6 +293,27 @@ namespace NekiraDelegate
 
 } // namespace NekiraDelegate
 
+
+
+namespace NekiraDelegate
+{
+    // ============================================== 辅助函数 ============================================== //
+
+    // 将shared_ptr<T> 转换为 shared_ptr<const T>
+    template <typename T>
+    static std::shared_ptr<const T> ConstSharedPtr( const std::shared_ptr<T>& ptr )
+    {
+        return std::static_pointer_cast< const T >( ptr );
+    }
+
+    // 将shared_ptr<T> 转换为 shared_ptr<volatile T>
+    template <typename T>
+    static std::shared_ptr<volatile T> VolatileSharedPtr( const std::shared_ptr<T>& ptr )
+    {
+        return std::static_pointer_cast< volatile T >( ptr );
+    }
+
+}
 
 namespace NekiraDelegate
 {
@@ -254,23 +329,37 @@ namespace NekiraDelegate
 
     // Member Function
     template < typename ClassType, typename RT, typename... Args >
-    static std::shared_ptr< ICallableBase<RT, Args...> > MakeCallableBase( ClassType* Object, RT( ClassType::* FuncPtr )( Args... ) )
+    static std::shared_ptr< ICallableBase<RT, Args...> > MakeCallableBase( std::shared_ptr<ClassType> Object, RT( ClassType::* FuncPtr )( Args... ) )
     {
         return std::make_shared < ICallable< RT( ClassType::* )( Args... ) > >( Object, FuncPtr );
     }
 
-    // const Member Function
+    // const Member Function (const Object)
     template < typename ClassType, typename RT, typename... Args >
-    static std::shared_ptr< ICallableBase<RT, Args...> > MakeCallableBase( const ClassType* Object, RT( ClassType::* FuncPtr )( Args... ) const )
+    static std::shared_ptr< ICallableBase<RT, Args...> > MakeCallableBase( std::shared_ptr<const ClassType> Object, RT( ClassType::* FuncPtr )( Args... ) const )
     {
         return std::make_shared < ICallable< RT( ClassType::* )( Args... ) const > >( Object, FuncPtr );
     }
 
-    // volatile Member Funciton
+    // const Member Function (non const Object)
     template < typename ClassType, typename RT, typename... Args >
-    static std::shared_ptr< ICallableBase<RT, Args...> > MakeCallableBase( volatile ClassType* Object, RT( ClassType::* FuncPtr )( Args... ) volatile )
+    static std::shared_ptr< ICallableBase<RT, Args...> > MakeCallableBase( std::shared_ptr<ClassType> Object, RT( ClassType::* FuncPtr )( Args... ) const )
+    {
+        return std::make_shared < ICallable< RT( ClassType::* )( Args... ) const > >( ConstSharedPtr( Object ), FuncPtr );
+    }
+
+    // volatile Member Funciton (volatile Object)
+    template < typename ClassType, typename RT, typename... Args >
+    static std::shared_ptr< ICallableBase<RT, Args...> > MakeCallableBase( std::shared_ptr<volatile ClassType> Object, RT( ClassType::* FuncPtr )( Args... ) volatile )
     {
         return std::make_shared < ICallable< RT( ClassType::* )( Args... ) volatile > >( Object, FuncPtr );
+    }
+
+    // volatile Member Funciton (non volatile Object)
+    template < typename ClassType, typename RT, typename... Args >
+    static std::shared_ptr< ICallableBase<RT, Args...> > MakeCallableBase( std::shared_ptr<ClassType> Object, RT( ClassType::* FuncPtr )( Args... ) volatile )
+    {
+        return std::make_shared < ICallable< RT( ClassType::* )( Args... ) volatile > >( VolatileSharedPtr( Object ), FuncPtr );
     }
 
     // std::function (Left Reference)

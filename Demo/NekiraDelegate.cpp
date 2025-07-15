@@ -80,8 +80,9 @@ DECLARE_DELEGATE( SingleSignature, void, float, const std::string& )
 
 int main()
 {
-    TestClass ClassObj;
+    auto ClassObj = std::make_shared<TestClass>();
     FuncObject FuncObj;
+    auto VolatileObj = std::make_shared<volatile TestClass>();
 
     // 创建单播委托实例
     SingleSignature SingleDelegate;
@@ -90,8 +91,12 @@ int main()
     SingleDelegate.Bind( GlobalFunc );
     SingleDelegate.Invoke( 1.0f, "Tokira" );
     // 成员函数绑定
-    SingleDelegate.Bind( &ClassObj, &TestClass::ConstFunc );
-    SingleDelegate.Invoke( 2.0f, "Tokira" );
+    SingleDelegate.Bind( ClassObj, &TestClass::Func );
+    SingleDelegate.Invoke( 1.5f, "Nekira" );
+
+    SingleDelegate.Bind( ClassObj, &TestClass::ConstFunc );
+    SingleDelegate.Invoke( 2.0f, "Delegate" );
+
     // Lambda绑定
     SingleDelegate.Bind( LambdaFunc );
     SingleDelegate.Invoke( 3.0f, "Tokira" );
@@ -103,9 +108,9 @@ int main()
     // 添加普通函数
     MultiDelegate.Add( GlobalFunc );
     // 添加成员函数
-    MultiDelegate.Add( &ClassObj, &TestClass::Func );
-    MultiDelegate.Add( &ClassObj, &TestClass::VolatileFunc );
-    MultiDelegate.Add( &ClassObj, &TestClass::ConstFunc );
+    MultiDelegate.Add( ClassObj, &TestClass::Func );
+    MultiDelegate.Add( VolatileObj, &TestClass::VolatileFunc );
+
     // 添加 Lambda
     MultiDelegate.Add( LambdaFunc );
     // 添加函数对象

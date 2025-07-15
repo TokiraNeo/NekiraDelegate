@@ -55,35 +55,43 @@ namespace NekiraDelegate
         // Bind a Global Function
         void Bind( RT( *FuncPtr )( Args... ) )
         {
-            CallableObj.reset();
+
 
             CallableObj = MakeCallableBase( FuncPtr );
         }
 
         // Bind a Member Function
         template <typename ClassType>
-        void Bind( ClassType* Object, RT( ClassType::* FuncPtr )( Args... ) )
+        void Bind( std::shared_ptr<ClassType> Object, RT( ClassType::* FuncPtr )( Args... ) )
         {
-            CallableObj.reset();
-
             CallableObj = MakeCallableBase( Object, FuncPtr );
         }
 
-        // Bind a const Member Function
+        // Bind a const Member Function (const Object)
         template <typename ClassType>
-        void Bind( const ClassType* Object, RT( ClassType::* FuncPtr )( Args... ) const )
+        void Bind( std::shared_ptr<const ClassType> Object, RT( ClassType::* FuncPtr )( Args... ) const )
         {
-            CallableObj.reset();
-
             CallableObj = MakeCallableBase( Object, FuncPtr );
         }
 
-        // Bind a volatile Member Function
+        // Bind a const Member Function (non const Object)
         template <typename ClassType>
-        void Bind( volatile ClassType* Object, RT( ClassType::* FuncPtr )( Args... ) volatile )
+        void Bind( std::shared_ptr<ClassType> Object, RT( ClassType::* FuncPtr )( Args... ) const )
         {
-            CallableObj.reset();
+            CallableObj = MakeCallableBase( Object, FuncPtr );
+        }
 
+        // Bind a volatile Member Function (volatile Object)
+        template <typename ClassType>
+        void Bind( std::shared_ptr<volatile ClassType> Object, RT( ClassType::* FuncPtr )( Args... ) volatile )
+        {
+            CallableObj = MakeCallableBase( Object, FuncPtr );
+        }
+
+        // Bind a volatile Member Function (non volatile Object)
+        template <typename ClassType>
+        void Bind( std::shared_ptr<ClassType> Object, RT( ClassType::* FuncPtr )( Args... ) volatile )
+        {
             CallableObj = MakeCallableBase( Object, FuncPtr );
         }
 
@@ -91,7 +99,6 @@ namespace NekiraDelegate
         void Bind( const std::function<RT( Args... )>& Function )
         {
             CallableObj.reset();
-
             CallableObj = MakeCallableBase( Function );
         }
 
@@ -99,7 +106,6 @@ namespace NekiraDelegate
         void Bind( std::function<RT( Args... )>&& Function )
         {
             CallableObj.reset();
-
             CallableObj = MakeCallableBase( std::move( Function ) );
         }
 
@@ -109,7 +115,6 @@ namespace NekiraDelegate
         void Bind( Callable&& callable )
         {
             CallableObj.reset();
-
             CallableObj = MakeCallableBase( std::forward<Callable>( callable ) );
         }
 
@@ -199,7 +204,7 @@ namespace NekiraDelegate
 
         // Add a Member Function
         template <typename ClassType>
-        DelegateHandle Add( ClassType* Object, RT( ClassType::* FuncPtr )( Args... ) )
+        DelegateHandle Add( std::shared_ptr<ClassType> Object, RT( ClassType::* FuncPtr )( Args... ) )
         {
             Delegate<RT, Args...> delegate;
             delegate.Bind( Object, FuncPtr );
@@ -208,9 +213,9 @@ namespace NekiraDelegate
             return handle;
         }
 
-        // Add a const Member Function
+        // Add a const Member Function (const Object)
         template <typename ClassType>
-        DelegateHandle Add( const ClassType* Object, RT( ClassType::* FuncPtr )( Args... ) const )
+        DelegateHandle Add( std::shared_ptr<const ClassType> Object, RT( ClassType::* FuncPtr )( Args... ) const )
         {
             Delegate<RT, Args...> delegate;
             delegate.Bind( Object, FuncPtr );
@@ -219,9 +224,31 @@ namespace NekiraDelegate
             return handle;
         }
 
-        // Add a volatile Member Function
+        // Add a const Member Function (non const Object)
         template <typename ClassType>
-        DelegateHandle Add( volatile ClassType* Object, RT( ClassType::* FuncPtr )( Args... ) volatile )
+        DelegateHandle Add( std::shared_ptr<ClassType> Object, RT( ClassType::* FuncPtr )( Args... ) const )
+        {
+            Delegate<RT, Args...> delegate;
+            delegate.Bind( Object, FuncPtr );
+            DelegateHandle handle{ this, DelegateIDCounter + 1 };
+            Delegates.emplace_back( handle, std::move( delegate ) );
+            return handle;
+        }
+
+        // Add a volatile Member Function (volatile Object)
+        template <typename ClassType>
+        DelegateHandle Add( std::shared_ptr<volatile ClassType> Object, RT( ClassType::* FuncPtr )( Args... ) volatile )
+        {
+            Delegate<RT, Args...> delegate;
+            delegate.Bind( Object, FuncPtr );
+            DelegateHandle handle{ this, DelegateIDCounter + 1 };
+            Delegates.emplace_back( handle, std::move( delegate ) );
+            return handle;
+        }
+
+        // Add a volatile Member Function (non volatile Object)
+        template <typename ClassType>
+        DelegateHandle Add( std::shared_ptr<ClassType> Object, RT( ClassType::* FuncPtr )( Args... ) volatile )
         {
             Delegate<RT, Args...> delegate;
             delegate.Bind( Object, FuncPtr );
