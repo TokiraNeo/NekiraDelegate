@@ -205,8 +205,8 @@ namespace NekiraDelegate
 namespace NekiraDelegate
 {
     // ============================================ 支持函数对象、Lambda表达式 ============================================ //
-    template <typename Callable, typename CallableSignature = decltype( &Callable::operator() ),
-        typename = std::enable_if_t< std::is_class_v<Callable> > >
+    template <typename Callable, typename CallableSignature = decltype( &Callable::operator() )>
+        requires std::is_class_v<Callable>
     struct ICallableWrapper
     {
     };
@@ -380,10 +380,10 @@ namespace NekiraDelegate
     template <typename Callable> requires std::is_class_v< std::remove_reference_t<Callable> >
     static auto MakeCallableBase( Callable&& callable )
     {
-        using RowType = std::remove_reference_t<Callable>;
-        using CallableWrapperType = ICallableWrapper<RowType>;
+        using RawType = std::remove_reference_t<Callable>;
+        using ICallableWrapperType = ICallableWrapper<RawType>;
 
-        return std::make_shared< CallableWrapperType >( std::forward<Callable>( callable ) );
+        return std::make_shared < ICallableWrapperType >( std::forward<Callable>( callable ) );
     }
 
 } // namespace NekiraDelegate
