@@ -2,7 +2,7 @@
 
 ## 🟩
 
-- [English](README_EN.md)
+- [English](README.EN.md)
 
 ## 📃 介绍
 
