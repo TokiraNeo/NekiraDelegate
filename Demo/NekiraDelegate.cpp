@@ -39,6 +39,8 @@ auto LambdaFunc = [ ]( float a, const std::string& str )
         std::cout << "LambdaFunc called with: " << a << ", " << str << "\n";
     };
 
+auto DeferLambdaFunc = [ ]( int a, float b ) { };
+
 class TestClass
 {
 public:
@@ -93,13 +95,15 @@ int main()
     // 成员函数绑定
     SingleDelegate.Bind( ClassObj, &TestClass::Func );
     SingleDelegate.Invoke( 1.5f, "Nekira" );
-
     SingleDelegate.Bind( ClassObj, &TestClass::ConstFunc );
     SingleDelegate.Invoke( 2.0f, "Delegate" );
 
     // Lambda绑定
     SingleDelegate.Bind( LambdaFunc );
     SingleDelegate.Invoke( 3.0f, "Tokira" );
+
+    // 函数签名检查,当函数对象、Lambda的签名不匹配时会报错
+    // SingleDelegate.Bind( DeferLambdaFunc );
 
     // 创建多播委托实例
     MultiSignature MultiDelegate;

@@ -24,7 +24,7 @@ SOFTWARE.
 
 #pragma once
 #include <algorithm>
-#include "../CallableInterface/CallableInterface.hpp"
+#include "../CallableInterface/CallableFactory.hpp"
 
 
 
@@ -98,24 +98,20 @@ namespace NekiraDelegate
         // Bind a std::function (Left Reference)
         void Bind( const std::function<RT( Args... )>& Function )
         {
-            CallableObj.reset();
             CallableObj = MakeCallableBase( Function );
         }
 
         // Bind a std::function (Right Reference)
         void Bind( std::function<RT( Args... )>&& Function )
         {
-            CallableObj.reset();
             CallableObj = MakeCallableBase( std::move( Function ) );
         }
 
         // Bind a Function Object or Lambda
-        template <typename Callable>
-            requires std::is_class_v< std::remove_reference_t<Callable> >
+        template <typename Callable> requires IsValidCallable<Callable, RT, Args...>
         void Bind( Callable&& callable )
         {
-            CallableObj.reset();
-            CallableObj = MakeCallableBase( std::forward<Callable>( callable ) );
+            CallableObj = MakeCallableBase<RT, Args...>( std::forward<Callable>( callable ) );
         }
 
 
@@ -182,15 +178,6 @@ namespace NekiraDelegate
             }
         }
 
-        // Add a delegate to the multicast delegate
-        DelegateHandle Add( const Delegate<RT, Args...>& delegate )
-        {
-            DelegateHandle handle{ this, DelegateIDCounter + 1 };
-
-            Delegates.emplace_back( handle, std::move( delegate ) );
-
-            return handle;
-        }
 
         // Add a Normal Function
         DelegateHandle Add( RT( *FuncPtr )( Args... ) )
@@ -278,8 +265,7 @@ namespace NekiraDelegate
         }
 
         // Add a Function Object or Lambda
-        template <typename Callable>
-            requires std::is_class_v< std::remove_reference_t<Callable> >
+        template <typename Callable> requires IsValidCallable<Callable, RT, Args...>
         DelegateHandle Add( Callable&& callable )
         {
             Delegate<RT, Args...> delegate;

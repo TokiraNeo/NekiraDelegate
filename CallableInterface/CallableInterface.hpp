@@ -191,7 +191,7 @@ namespace NekiraDelegate
 
         virtual bool IsValid() const override
         {
-            return static_cast< bool >( Function );
+            return true;
         }
 
     private:
@@ -205,28 +205,22 @@ namespace NekiraDelegate
 namespace NekiraDelegate
 {
     // ============================================ 支持函数对象、Lambda表达式 ============================================ //
-    template <typename Callable, typename CallableSignature = decltype( &Callable::operator() )>
-        requires std::is_class_v<Callable>
-    struct ICallableWrapper
+    template <typename Callable, typename RT, typename... Args>
+    struct ICallableWrapper : ICallableBase<RT, Args...>
     {
-    };
-
-    template <typename ClassType, typename RT, typename... Args>
-    struct ICallableWrapper< ClassType, RT( ClassType::* )( Args... ) > : ICallableBase<RT, Args...>
-    {
-        ICallableWrapper( const ClassType& Obj )
-            : CallableObj( Obj )
+        ICallableWrapper( const Callable& callable )
+            : CallableObj( callable )
         {
         }
 
-        ICallableWrapper( ClassType&& Obj )
-            : CallableObj( std::move( Obj ) )
+        ICallableWrapper( Callable&& callable )
+            : CallableObj( std::move( callable ) )
         {
         }
 
         RT Invoke( Args... args ) override
         {
-            CallableObj( std::forward<Args>( args )... );
+            return CallableObj( std::forward<Args>( args )... );
         }
 
         virtual bool IsValid() const override
@@ -235,156 +229,10 @@ namespace NekiraDelegate
         }
 
     private:
-        ClassType CallableObj;
-    };
-
-    template <typename ClassType, typename RT, typename... Args>
-    struct ICallableWrapper< ClassType, RT( ClassType::* )( Args... ) const> : ICallableBase<RT, Args...>
-    {
-        ICallableWrapper( const ClassType& Obj )
-            : CallableObj( Obj )
-        {
-        }
-
-        ICallableWrapper( ClassType&& Obj )
-            : CallableObj( std::move( Obj ) )
-        {
-        }
-
-        RT Invoke( Args... args ) override
-        {
-            CallableObj( std::forward<Args>( args )... );
-        }
-
-        virtual bool IsValid() const override
-        {
-            return true;
-        }
-    private:
-        ClassType CallableObj;
-    };
-
-    template <typename ClassType, typename RT, typename... Args>
-    struct ICallableWrapper< ClassType, RT( ClassType::* )( Args... ) volatile> : ICallableBase<RT, Args...>
-    {
-        ICallableWrapper( const ClassType& Obj )
-            : CallableObj( Obj )
-        {
-        }
-
-        ICallableWrapper( ClassType&& Obj )
-            : CallableObj( std::move( Obj ) )
-        {
-        }
-
-        RT Invoke( Args... args ) override
-        {
-            CallableObj( std::forward<Args>( args )... );
-        }
-
-        virtual bool IsValid() const override
-        {
-            return true;
-        }
-    private:
-        ClassType CallableObj;
+        Callable CallableObj;
     };
 
 
-} // namespace NekiraDelegate
-
-
-
-namespace NekiraDelegate
-{
-    // ============================================== 辅助函数 ============================================== //
-
-    // 将shared_ptr<T> 转换为 shared_ptr<const T>
-    template <typename T>
-    static std::shared_ptr<const T> ConstSharedPtr( const std::shared_ptr<T>& ptr )
-    {
-        return std::static_pointer_cast< const T >( ptr );
-    }
-
-    // 将shared_ptr<T> 转换为 shared_ptr<volatile T>
-    template <typename T>
-    static std::shared_ptr<volatile T> VolatileSharedPtr( const std::shared_ptr<T>& ptr )
-    {
-        return std::static_pointer_cast< volatile T >( ptr );
-    }
-
-}
-
-namespace NekiraDelegate
-{
-    // =============================================== 辅助函数 =============================================== //
-    // 创建ICallableBase 实例的静态方法
-
-    // Normal Function
-    template < typename RT, typename... Args >
-    static std::shared_ptr< ICallableBase<RT, Args...> > MakeCallableBase( RT( *FuncPtr )( Args... ) )
-    {
-        return std::make_shared< ICallable<RT( * )( Args... )> >( FuncPtr );
-    }
-
-    // Member Function
-    template < typename ClassType, typename RT, typename... Args >
-    static std::shared_ptr< ICallableBase<RT, Args...> > MakeCallableBase( std::shared_ptr<ClassType> Object, RT( ClassType::* FuncPtr )( Args... ) )
-    {
-        return std::make_shared < ICallable< RT( ClassType::* )( Args... ) > >( Object, FuncPtr );
-    }
-
-    // const Member Function (const Object)
-    template < typename ClassType, typename RT, typename... Args >
-    static std::shared_ptr< ICallableBase<RT, Args...> > MakeCallableBase( std::shared_ptr<const ClassType> Object, RT( ClassType::* FuncPtr )( Args... ) const )
-    {
-        return std::make_shared < ICallable< RT( ClassType::* )( Args... ) const > >( Object, FuncPtr );
-    }
-
-    // const Member Function (non const Object)
-    template < typename ClassType, typename RT, typename... Args >
-    static std::shared_ptr< ICallableBase<RT, Args...> > MakeCallableBase( std::shared_ptr<ClassType> Object, RT( ClassType::* FuncPtr )( Args... ) const )
-    {
-        return std::make_shared < ICallable< RT( ClassType::* )( Args... ) const > >( ConstSharedPtr( Object ), FuncPtr );
-    }
-
-    // volatile Member Funciton (volatile Object)
-    template < typename ClassType, typename RT, typename... Args >
-    static std::shared_ptr< ICallableBase<RT, Args...> > MakeCallableBase( std::shared_ptr<volatile ClassType> Object, RT( ClassType::* FuncPtr )( Args... ) volatile )
-    {
-        return std::make_shared < ICallable< RT( ClassType::* )( Args... ) volatile > >( Object, FuncPtr );
-    }
-
-    // volatile Member Funciton (non volatile Object)
-    template < typename ClassType, typename RT, typename... Args >
-    static std::shared_ptr< ICallableBase<RT, Args...> > MakeCallableBase( std::shared_ptr<ClassType> Object, RT( ClassType::* FuncPtr )( Args... ) volatile )
-    {
-        return std::make_shared < ICallable< RT( ClassType::* )( Args... ) volatile > >( VolatileSharedPtr( Object ), FuncPtr );
-    }
-
-    // std::function (Left Reference)
-    template < typename RT, typename... Args >
-    static std::shared_ptr< ICallableBase<RT, Args...> > MakeCallableBase( const std::function< RT( Args... ) >& Function )
-    {
-        return std::make_shared < ICallable < std::function<RT( Args... )> > >( Function );
-    }
-
-    // std::function (Right Reference)
-    template < typename RT, typename... Args >
-    static std::shared_ptr< ICallableBase<RT, Args...> > MakeCallableBase( std::function< RT( Args... ) >&& Function )
-    {
-        return std::make_shared < ICallable < std::function<RT( Args... )> > >( std::move( Function ) );
-    }
-
-    // Function Object、Lambda
-    template <typename Callable> requires std::is_class_v< std::remove_reference_t<Callable> >
-    static auto MakeCallableBase( Callable&& callable )
-    {
-        using RawType = std::remove_reference_t<Callable>;
-        using ICallableWrapperType = ICallableWrapper<RawType>;
-
-        return std::make_shared < ICallableWrapperType >( std::forward<Callable>( callable ) );
-    }
 
 } // namespace NekiraDelegate
 
