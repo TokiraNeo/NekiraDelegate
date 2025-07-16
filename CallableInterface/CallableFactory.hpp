@@ -32,8 +32,9 @@ SOFTWARE.
 
 namespace NekiraDelegate
 {
-    // =============================================== 模板约束 =============================================== //
+    // =============================================== concept =============================================== //
 
+    // Check if the Callable is valid
     // 检查函数对象、Lambda是否符合条件
     template <typename Callable, typename RT, typename... Args>
     concept IsValidCallable = std::is_class_v< std::remove_reference_t<Callable> > &&
@@ -45,8 +46,9 @@ namespace NekiraDelegate
 
 namespace NekiraDelegate
 {
-    // ============================================== 辅助函数 ============================================== //
+    // ============================================== Helper Function ============================================== //
 
+    // Covert `shared_ptr<T>` To `shared_ptr<const T>`
     // 将shared_ptr<T> 转换为 shared_ptr<const T>
     template <typename T>
     static std::shared_ptr<const T> ConstSharedPtr( const std::shared_ptr<T>& ptr )
@@ -54,6 +56,7 @@ namespace NekiraDelegate
         return std::static_pointer_cast< const T >( ptr );
     }
 
+    // Covert `shared_ptr<T>` To `shared_ptr<volatile T>`
     // 将shared_ptr<T> 转换为 shared_ptr<volatile T>
     template <typename T>
     static std::shared_ptr<volatile T> VolatileSharedPtr( const std::shared_ptr<T>& ptr )
@@ -67,10 +70,12 @@ namespace NekiraDelegate
 
 namespace NekiraDelegate
 {
-    // =============================================== 工厂函数 =============================================== //
-    // 创建ICallableBase 实例的静态方法
+    // =============================================== Factory Function =============================================== //
+    // Factory Method to create ICallableBase instances
+    // 创建ICallableBase 实例的静态工厂方法
 
     // Normal Function
+    // 普通函数
     template < typename RT, typename... Args >
     static std::shared_ptr< ICallableBase<RT, Args...> > MakeCallableBase( RT( *FuncPtr )( Args... ) )
     {
@@ -78,6 +83,7 @@ namespace NekiraDelegate
     }
 
     // Member Function
+    // 成员函数
     template < typename ClassType, typename RT, typename... Args >
     static std::shared_ptr< ICallableBase<RT, Args...> > MakeCallableBase( std::shared_ptr<ClassType> Object, RT( ClassType::* FuncPtr )( Args... ) )
     {
@@ -85,6 +91,7 @@ namespace NekiraDelegate
     }
 
     // const Member Function (const Object)
+    // const 成员函数 (const 对象)
     template < typename ClassType, typename RT, typename... Args >
     static std::shared_ptr< ICallableBase<RT, Args...> > MakeCallableBase( std::shared_ptr<const ClassType> Object, RT( ClassType::* FuncPtr )( Args... ) const )
     {
@@ -92,6 +99,7 @@ namespace NekiraDelegate
     }
 
     // const Member Function (non const Object)
+    // const 成员函数 (非 const 对象)
     template < typename ClassType, typename RT, typename... Args >
     static std::shared_ptr< ICallableBase<RT, Args...> > MakeCallableBase( std::shared_ptr<ClassType> Object, RT( ClassType::* FuncPtr )( Args... ) const )
     {
@@ -99,6 +107,7 @@ namespace NekiraDelegate
     }
 
     // volatile Member Funciton (volatile Object)
+    // volatile 成员函数 (volatile 对象)
     template < typename ClassType, typename RT, typename... Args >
     static std::shared_ptr< ICallableBase<RT, Args...> > MakeCallableBase( std::shared_ptr<volatile ClassType> Object, RT( ClassType::* FuncPtr )( Args... ) volatile )
     {
@@ -106,6 +115,7 @@ namespace NekiraDelegate
     }
 
     // volatile Member Funciton (non volatile Object)
+    // volatile 成员函数 (非 volatile 对象)
     template < typename ClassType, typename RT, typename... Args >
     static std::shared_ptr< ICallableBase<RT, Args...> > MakeCallableBase( std::shared_ptr<ClassType> Object, RT( ClassType::* FuncPtr )( Args... ) volatile )
     {
@@ -113,6 +123,7 @@ namespace NekiraDelegate
     }
 
     // std::function (Left Reference)
+    // std::function (左值引用)
     template < typename RT, typename... Args >
     static std::shared_ptr< ICallableBase<RT, Args...> > MakeCallableBase( const std::function< RT( Args... ) >& Function )
     {
@@ -120,6 +131,7 @@ namespace NekiraDelegate
     }
 
     // std::function (Right Reference)
+    // std::function (右值引用)
     template < typename RT, typename... Args >
     static std::shared_ptr< ICallableBase<RT, Args...> > MakeCallableBase( std::function< RT( Args... ) >&& Function )
     {
@@ -127,6 +139,7 @@ namespace NekiraDelegate
     }
 
     // Function Object、Lambda
+    // 函数对象、Lambda
     template <typename RT, typename... Args, typename Callable>
         requires IsValidCallable<Callable, RT, Args...>
     static std::shared_ptr< ICallableBase<RT, Args...> > MakeCallableBase( Callable&& callable )

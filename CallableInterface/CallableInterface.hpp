@@ -30,15 +30,18 @@ SOFTWARE.
 
 namespace NekiraDelegate
 {
+    // Basic Interface for all callable objects, should inherit from this
     // 可调用接口的基类
     template <typename RT, typename... Args>
     struct ICallableBase
     {
         virtual ~ICallableBase() = default;
 
+        // Unified invoke interface for calling.
         // 统一的调用接口
         virtual RT Invoke( Args... args ) = 0;
 
+        // Check if valid
         // 检查是否有效
         virtual bool IsValid() const = 0;
     };
@@ -48,14 +51,15 @@ namespace NekiraDelegate
 
 namespace NekiraDelegate
 {
-
+    // Basic ICallable
     // 可调用接口的默认实现
     template <typename Callable>
     struct ICallable
     {
     };
 
-    // 特化：普通函数指针
+    // ============================================== Normal Function ============================================== //
+    // 特化：普通函数
     template <typename RT, typename... Args>
     struct ICallable<RT( * )( Args... )> : ICallableBase<RT, Args...>
     {
@@ -79,7 +83,8 @@ namespace NekiraDelegate
         FuncSignature FuncPtr;
     };
 
-    // 特化：成员函数指针
+    // ============================================== Member Function ============================================== //
+    // 特化：成员函数
     template <typename ClassType, typename RT, typename... Args>
     struct ICallable<RT( ClassType::* )( Args... )> : ICallableBase<RT, Args...>
     {
@@ -108,7 +113,8 @@ namespace NekiraDelegate
         FuncSignature FuncPtr;
     };
 
-    // 特化：const成员函数指针
+    // ============================================== const Member Function ============================================== //
+    // 特化：const成员函数
     template <typename ClassType, typename RT, typename... Args>
     struct ICallable<RT( ClassType::* )( Args... ) const> : ICallableBase<RT, Args...>
     {
@@ -138,6 +144,7 @@ namespace NekiraDelegate
         FuncSignature FuncPtr;
     };
 
+    // ============================================== volatile Member Function ============================================== //
     // 特化：volatile成员函数
     template <typename ClassType, typename RT, typename... Args>
     struct ICallable<RT( ClassType::* )( Args... ) volatile> : ICallableBase<RT, Args...>
@@ -168,6 +175,7 @@ namespace NekiraDelegate
         FuncSignature FuncPtr;
     };
 
+    // ============================================== std::function ============================================== //
     // 特化：std::function
     template <typename RT, typename... Args>
     struct ICallable<std::function<RT( Args... )>> : ICallableBase< RT, Args... >
@@ -204,7 +212,8 @@ namespace NekiraDelegate
 
 namespace NekiraDelegate
 {
-    // ============================================ 支持函数对象、Lambda表达式 ============================================ //
+    // ============================================ Function Object、Lambda ============================================ //
+    // 支持函数对象和 Lambda 表达式
     template <typename Callable, typename RT, typename... Args>
     struct ICallableWrapper : ICallableBase<RT, Args...>
     {
@@ -231,8 +240,6 @@ namespace NekiraDelegate
     private:
         Callable CallableObj;
     };
-
-
 
 } // namespace NekiraDelegate
 
