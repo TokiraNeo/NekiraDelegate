@@ -30,7 +30,7 @@ SOFTWARE.
 
 namespace NekiraDelegate
 {
-    // ============================================== 单播委托 ============================================== //
+    // ============================================ Single Delegate(单播委托) ============================================ //
 
     template <typename RT, typename... Args>
     class Delegate
@@ -133,7 +133,7 @@ namespace NekiraDelegate
 
 namespace NekiraDelegate
 {
-    // ============================================== Delegate Handle ============================================== //
+    // ============================================ Delegate Handle(委托句柄) ============================================ //
 
     struct DelegateHandle
     {
@@ -155,7 +155,7 @@ namespace NekiraDelegate
 
 namespace NekiraDelegate
 {
-    // ============================================== 多播委托 ============================================== //
+    // ========================================== Multicast Delegate(多播委托) ========================================== //
 
     template <typename RT, typename... Args>
     class MulticastDelegate
