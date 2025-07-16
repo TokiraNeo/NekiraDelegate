@@ -1,5 +1,9 @@
 # NekiraDelegate
 
+## 🟩
+
+- [English](README_EN.md)
+
 ## 📃 介绍
 
 ```
