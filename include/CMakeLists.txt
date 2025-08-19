@@ -2,5 +2,5 @@
 # Modules/CMakeLists.txt
 # =====================================================
 
-add_subdirectory(Core)
-add_subdirectory(SignalSlot)
+add_subdirectory(NekiraDelegate)
+
