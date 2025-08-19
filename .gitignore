@@ -31,8 +31,26 @@
 *.out
 *.app
 
+# 忽略.idea目录
+.idea/
+
 # 忽略VSCode 配置目录
 .vscode/
 
-# 忽略CMake 生成的文件
+# 忽略build目录
 build*
+
+# 忽略clangd相关
+.cache/
+
+# 忽略CMakeUserPresets.json
+CMakeUserPresets.json
+
+# 忽略install测试文件
+install/
+
+# 忽略Test文件
+Test/
+
+# 忽略测试用的生成文件
+Generated/
