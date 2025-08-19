@@ -4,34 +4,6 @@
 
 include(GNUInstallDirs)
 
-# =====================================================
-# Core Module
-# =====================================================
-
-# headers
-file(GLOB_RECURSE CORE_HEADERS "Core/*.hpp")
-file(GLOB_RECURSE CORE_SOURCES "${CMAKE_SOURCE_DIR}/source/Core/*.cpp")
-
-# Core library
-add_library(Core SHARED ${CORE_HEADERS} ${CORE_SOURCES})
-
-# include directories
-target_include_directories(Core
-    PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/Core
-)
-
-# link libraries
-target_link_libraries(Core PUBLIC SignalSlot)
-
-# install
-install(FILES ${CORE_HEADERS}
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/NekiraDelegate/Core
-)
 
 
 
@@ -57,7 +29,41 @@ target_include_directories(SignalSlot
         ${CMAKE_CURRENT_SOURCE_DIR}/SignalSlot
 )
 
-# install
+# install headers
 install(FILES ${SIGNALSLOT_HEADERS}
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/NekiraDelegate/SignalSlot
 )
+
+
+
+# =====================================================
+# Core Module
+# =====================================================
+
+# headers
+file(GLOB_RECURSE CORE_HEADERS "Core/*.hpp")
+file(GLOB_RECURSE CORE_SOURCES "${CMAKE_SOURCE_DIR}/source/Core/*.cpp")
+
+# Core library
+add_library(Core SHARED ${CORE_HEADERS} ${CORE_SOURCES})
+
+# include directories
+target_include_directories(Core
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/Core
+)
+
+# link libraries
+target_link_libraries(Core PUBLIC SignalSlot)
+
+# install headers
+install(FILES ${CORE_HEADERS}
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/NekiraDelegate/Core
+)
+
+
+

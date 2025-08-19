@@ -76,7 +76,7 @@ public:
 
     // 连接普通成员函数,要求继承 ConnectionInterface接口
     template <typename ClassType>
-        requires std::is_base_of_v<ConnectionInterface, ClassType>
+        requires std::is_base_of_v<IConnectionInterface, ClassType>
     void Connect(ClassType* Object, RT (ClassType::*FuncPtr)(Args...))
     {
         auto Lambda = [Object, FuncPtr](Args&&... args) -> RT
@@ -87,12 +87,12 @@ public:
         ConnectionPtr = std::make_shared<Connection<RT, Args...>>(std::move(Func));
 
         // 添加连接到对象的连接接口
-        static_cast<ConnectionInterface*>(Object)->AddConnection(ConnectionPtr);
+        static_cast<IConnectionInterface*>(Object)->AddConnection(ConnectionPtr);
     }
 
     // 连接const成员函数,要求继承 ConnectionInterface接口
     template <typename ClassType>
-        requires std::is_base_of_v<ConnectionInterface, ClassType>
+        requires std::is_base_of_v<IConnectionInterface, ClassType>
     void Connect(const ClassType* Object, RT (ClassType::*FuncPtr)(Args...) const)
     {
         auto Lambda = [Object, FuncPtr](Args&&... args) -> RT
@@ -103,7 +103,7 @@ public:
         ConnectionPtr = std::make_shared<Connection<RT, Args...>>(std::move(Func));
 
         // 添加连接到对象的连接接口
-        static_cast<const ConnectionInterface*>(Object)->AddConnection(ConnectionPtr);
+        static_cast<const IConnectionInterface*>(Object)->AddConnection(ConnectionPtr);
     }
 
     // 连接函数对象、lambda表达式
@@ -220,7 +220,7 @@ public:
 
     // 连接普通成员函数,要求继承 ConnectionInterface接口
     template <typename ClassType>
-        requires std::is_base_of_v<ConnectionInterface, ClassType>
+        requires std::is_base_of_v<IConnectionInterface, ClassType>
     MultiSignalHandle Connect(ClassType* Object, void (ClassType::*FuncPtr)(Args...))
     {
         auto Lambda = [Object, FuncPtr](Args&&... args) { (Object->*FuncPtr)(std::forward<Args>(args)...); };
@@ -230,7 +230,7 @@ public:
         auto NewConnection = std::make_shared<ConnectionType>(std::move(Func));
 
         // 添加连接到对象的连接接口
-        static_cast<ConnectionInterface*>(Object)->AddConnection(NewConnection);
+        static_cast<IConnectionInterface*>(Object)->AddConnection(NewConnection);
 
         MultiSignalHandle Handler{Object, NextId++};
 
@@ -243,7 +243,7 @@ public:
 
     // 连接const成员函数,要求继承 ConnectionInterface接口
     template <typename ClassType>
-        requires std::is_base_of_v<ConnectionInterface, ClassType>
+        requires std::is_base_of_v<IConnectionInterface, ClassType>
     MultiSignalHandle Connect(const ClassType* Object, void (ClassType::*FuncPtr)(Args...) const)
     {
         auto Lambda = [Object, FuncPtr](Args&&... args) { (Object->*FuncPtr)(std::forward<Args>(args)...); };
@@ -253,7 +253,7 @@ public:
         auto NewConnection = std::make_shared<ConnectionType>(std::move(Func));
 
         // 添加连接到对象的连接接口
-        static_cast<const ConnectionInterface*>(Object)->AddConnection(NewConnection);
+        static_cast<const IConnectionInterface*>(Object)->AddConnection(NewConnection);
 
         MultiSignalHandle Handler{Object, NextId++};
 
