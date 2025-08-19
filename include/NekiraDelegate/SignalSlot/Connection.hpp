@@ -97,16 +97,16 @@ namespace NekiraDelegate
 {
 
 // 连接器接口，继承此接口以获得对连接器的自动管理
-class ConnectionInterface
+class IConnectionInterface
 {
 private:
     // 存储连接的容器
     mutable std::vector<std::weak_ptr<ConnectionBase>> Connections;
 
 public:
-    ConnectionInterface() = default;
+    IConnectionInterface() = default;
 
-    virtual ~ConnectionInterface()
+    virtual ~IConnectionInterface()
     {
         // 在析构时清理所有连接
         DisconnectAll();

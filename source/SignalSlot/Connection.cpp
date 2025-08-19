@@ -27,7 +27,7 @@
 namespace NekiraDelegate
 {
 // 添加连接
-void ConnectionInterface::AddConnection(std::shared_ptr<ConnectionBase> InConnection) const
+void IConnectionInterface::AddConnection(std::shared_ptr<ConnectionBase> InConnection) const
 {
     if (InConnection && InConnection->IsValid())
     {
@@ -36,7 +36,7 @@ void ConnectionInterface::AddConnection(std::shared_ptr<ConnectionBase> InConnec
 }
 
 // 断开所有连接
-void ConnectionInterface::DisconnectAll() const
+void IConnectionInterface::DisconnectAll() const
 {
     for (const auto& WeakConnection : Connections)
     {

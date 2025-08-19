@@ -73,7 +73,7 @@ public:
 
     // 绑定普通成员函数,要求继承 ConnectionInterface接口
     template <typename ClassType>
-        requires std::is_base_of_v<ConnectionInterface, ClassType>
+        requires std::is_base_of_v<IConnectionInterface, ClassType>
     void BindMemberFunction(ClassType* Object, RT (ClassType::*FuncPtr)(Args...))
     {
         if (Signal)
@@ -84,7 +84,7 @@ public:
 
     // 绑定const成员函数,要求继承 ConnectionInterface接口
     template <typename ClassType>
-        requires std::is_base_of_v<ConnectionInterface, ClassType>
+        requires std::is_base_of_v<IConnectionInterface, ClassType>
     void BindMemberFunction(const ClassType* Object, RT (ClassType::*FuncPtr)(Args...) const)
     {
         if (Signal)
@@ -163,7 +163,7 @@ public:
 
     // 连接普通成员函数,要求继承 ConnectionInterface接口
     template <typename ClassType>
-        requires std::is_base_of_v<ConnectionInterface, ClassType>
+        requires std::is_base_of_v<IConnectionInterface, ClassType>
     MultiSignalHandle BindMemberFunction(ClassType* Object, void (ClassType::*FuncPtr)(Args...))
     {
         return Signal ? Signal->Connect(Object, FuncPtr) : MultiSignalHandle{};
@@ -171,7 +171,7 @@ public:
 
     // 连接const成员函数,要求继承 ConnectionInterface接口
     template <typename ClassType>
-        requires std::is_base_of_v<ConnectionInterface, ClassType>
+        requires std::is_base_of_v<IConnectionInterface, ClassType>
     MultiSignalHandle BindMemberFunction(const ClassType* Object, void (ClassType::*FuncPtr)(Args...) const)
     {
         return Signal ? Signal->Connect(Object, FuncPtr) : MultiSignalHandle{};
