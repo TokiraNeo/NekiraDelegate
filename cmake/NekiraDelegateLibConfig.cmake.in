@@ -1,1 +1,15 @@
 @PACKAGE_INIT@
+
+message(NOTICE "NekiraDelegateLib: @PROJECT_VERSION@")
+
+# 设置include路径
+set(NekiraDelegate_INCLUDE_DIRS "@PACKAGE_CMAKE_INSTALL_INCLUDEDIR@")
+
+# 设置库
+set(NekiraDelegate_LIBRARIES NekiraDelegateLib::Core)
+
+message(NOTICE "NekiraDelegate_INCLUDE_DIRS: ${NekiraDelegate_INCLUDE_DIRS}")
+message(NOTICE "NekiraDelegate_LIBRARIES: ${NekiraDelegate_LIBRARIES}")
+
+# 导入NekiraDelegateLib的Targets.cmake配置
+include("${CMAKE_CURRENT_LIST_DIR}/NekiraDelegateLibTargets.cmake")

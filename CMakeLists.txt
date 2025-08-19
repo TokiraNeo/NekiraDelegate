@@ -19,7 +19,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 # =====================================================
 
 # 添加子目录
-add_subdirectory(Modules)
+add_subdirectory(include)
 
 # 定义包含的模块
 set(Module_Targets SignalSlot Core)
