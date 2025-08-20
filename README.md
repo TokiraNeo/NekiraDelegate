@@ -8,8 +8,8 @@
 ![CMake Version](https://img.shields.io/badge/CMake-%3E%3D3.20-%2366F59F?style=flat-square)
 ![GitHub commit activity](https://img.shields.io/github/commit-activity/m/TokiraNeo/NekiraDelegate?style=flat-square)
 
-![README CN](https://img.shields.io/badge/README-%E4%B8%AD%E6%96%87-%23F56666?style=flat-square&link=%2FDocuments%2FREADME%2FREADME.EN.MD)
-![README EN](https://img.shields.io/badge/README-EN-%23F56666?style=flat-square&link=%2FDocuments%2FREADME%2FREADME.EN.MD)
+[![README CN](https://img.shields.io/badge/README-%E4%B8%AD%E6%96%87-%23F56666?style=for-the-badge)](/Documents/README/README.CN.MD)
+[![README EN](https://img.shields.io/badge/README-EN-%23F56666?style=for-the-badge)](/Documents/README/README.EN.MD)
 
 ## 📃 介绍
 
