@@ -10,23 +10,3 @@
 
 [![README CN](https://img.shields.io/badge/README-%E4%B8%AD%E6%96%87-%23F56666?style=for-the-badge)](/Documents/README/README.CN.MD)
 [![README EN](https://img.shields.io/badge/README-EN-%23F56666?style=for-the-badge)](/Documents/README/README.EN.MD)
-
-## 📃 介绍
-
-```
-NekiraDelegateLib 是基于 C++的委托系统，包含了单播委托与多播委托两种委托。
-```
-
-## 📝 事项
-
-- [x] 重构，引入信号/槽机制
-
-## 📜 License
-
-```
-MIT License
-
-Copyright (c) 2025 TokiraNeo (https://github.com/TokiraNeo)
-```
-
----
