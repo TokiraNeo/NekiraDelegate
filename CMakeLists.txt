@@ -22,7 +22,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 add_subdirectory(include)
 
 # 定义包含的模块
-set(Module_Targets SignalSlot Core)
+set(Module_Targets SignalSlot DelegateCore)
 
 # 收集所有的模块目标
 set(NekiraDelegateLib_Modules)
