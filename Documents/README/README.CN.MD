@@ -23,6 +23,7 @@ NekiraDelegateLib 是基于信号/槽机制实现的 C++ 委托库，包含单�
 |           对象销毁时自动解绑            |
 |      支持 Lambda 表达式，函数对象       |
 |           单播委托与多播委托            |
+|              静态签名检查               |
 
 ## 🛠️ 安装
 
@@ -40,16 +41,22 @@ cmake --install build [--prefix] [install_dir]
 
 ## 🔗 使用
 
-- 在 NekiraDelegateLib 的安装目录中，bin 文件夹里可以看到 NekiraDelegateLib 构建产出的两个动态库：`libCore.dll`和`libSignalSlot.dll`。在实际使用时，需要将这两个动态库拷贝到你的可执行目标同目录。
+- 在 NekiraDelegateLib 的安装目录中，bin 文件夹里可以看到 NekiraDelegateLib 构建产出的两个动态库：`libDelegateCore.dll`和`libSignalSlot.dll`。在实际使用时，需要将这两个动态库拷贝到你的可执行目标同目录。
 
 - 在 cmake 中配置使用 NekiraDelegateLib：
 
 ```cmake
 find_package(NekiraDelegateLib REQUIRED)
 
-target_link_libraries(YourTarget PRIVATE NekiraDelegateLib::Core)
+target_link_libraries(YourTarget PRIVATE NekiraDelegateLib::DelegateCore)
 
 target_include_directories(YourTarget PRIVATE ${NekiraDelegate_INCLUDE_DIRS})
+```
+
+- 引入头文件：
+
+```c++
+#include <NekiraDelegate/Core/Macro.hpp>
 ```
 
 ## 🔖 案例

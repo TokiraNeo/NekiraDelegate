@@ -45,10 +45,10 @@ file(GLOB_RECURSE CORE_HEADERS "Core/*.hpp")
 file(GLOB_RECURSE CORE_SOURCES "${CMAKE_SOURCE_DIR}/source/Core/*.cpp")
 
 # Core library
-add_library(Core SHARED ${CORE_HEADERS} ${CORE_SOURCES})
+add_library(DelegateCore SHARED ${CORE_HEADERS} ${CORE_SOURCES})
 
 # include directories
-target_include_directories(Core
+target_include_directories(DelegateCore
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
@@ -58,7 +58,7 @@ target_include_directories(Core
 )
 
 # link libraries
-target_link_libraries(Core PUBLIC SignalSlot)
+target_link_libraries(DelegateCore PUBLIC SignalSlot)
 
 # install headers
 install(FILES ${CORE_HEADERS}
