@@ -24,9 +24,9 @@ NekiraDelegateLib 是基于信号/槽机制实现的 C++ 委托库，包含单�
 |      支持 Lambda 表达式，函数对象       |
 |           单播委托与多播委托            |
 
-## 安装
+## 🛠️ 安装
 
-克隆源码本地后，进入根目录，运行如下 cmake 命令：
+克隆源码至本地后，进入根目录，运行如下 cmake 命令：
 
 ```powershell
 cmake -S . -B build -G "Ninja"
@@ -38,7 +38,7 @@ cmake --install build [--prefix] [install_dir]
 
 ---
 
-## 使用
+## 🔗 使用
 
 - 在 NekiraDelegateLib 的安装目录中，bin 文件夹里可以看到 NekiraDelegateLib 构建产出的两个动态库：`libCore.dll`和`libSignalSlot.dll`。在实际使用时，需要将这两个动态库拷贝到你的可执行目标同目录。
 
@@ -52,7 +52,7 @@ target_link_libraries(YourTarget PRIVATE NekiraDelegateLib::Core)
 target_include_directories(YourTarget PRIVATE ${NekiraDelegate_INCLUDE_DIRS})
 ```
 
-## 案例
+## 🔖 案例
 
 [![MultiDelegate](https://img.shields.io/badge/Example-Multi_Delegate-38E5CB?style=for-the-badge)](/Documents/NekiraDelegate/MultiDelegate.MD)
 
@@ -60,6 +60,6 @@ target_include_directories(YourTarget PRIVATE ${NekiraDelegate_INCLUDE_DIRS})
 
 ---
 
-## License
+## 📜 License
 
 [![License](https://img.shields.io/badge/License-MIT-38E575?style=for-the-badge)](/LICENSE)
