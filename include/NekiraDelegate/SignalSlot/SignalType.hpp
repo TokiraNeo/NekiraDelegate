@@ -132,6 +132,11 @@ struct MultiSignalHandle
         return SignalPtr == Other.SignalPtr && Id == Other.Id;
     }
 
+    bool operator!=(const MultiSignalHandle& Other) const
+    {
+        return !(*this == Other);
+    }
+
     void*       SignalPtr; // 指向多播信号的指针
     std::size_t Id;        // 连接的唯一标识符
 };
