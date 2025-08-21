@@ -232,7 +232,7 @@ public:
         // 添加连接到对象的连接接口
         static_cast<IConnectionInterface*>(Object)->AddConnection(NewConnection);
 
-        MultiSignalHandle Handler{Object, NextId++};
+        MultiSignalHandle Handler{this, NextId++};
 
         ConnectionPair Pair{Handler, std::move(NewConnection)};
 
@@ -255,7 +255,7 @@ public:
         // 添加连接到对象的连接接口
         static_cast<const IConnectionInterface*>(Object)->AddConnection(NewConnection);
 
-        MultiSignalHandle Handler{Object, NextId++};
+        MultiSignalHandle Handler{this, NextId++};
 
         ConnectionPair Pair{Handler, std::move(NewConnection)};
 
@@ -266,7 +266,7 @@ public:
 
     // 连接函数对象、lambda表达式
     template <typename Callable>
-        requires std::is_invocable_v<void, Callable, Args...>
+        requires std::is_invocable_r_v<void, Callable, Args...>
     MultiSignalHandle Connect(Callable&& CallableObj)
     {
         std::function<void(Args...)> Func = std::forward<Callable>(CallableObj);

@@ -1,5 +1,6 @@
 ```c++
 //@[INFO] Declare the SingleDelegate Type
+//@[INFO] NEKIRA_SINGLE_DELEGATE(DelegateTypeName, ReturnType, ...)
 NEKIRA_SINGLE_DELEGATE(SingleSignature, void, int, float)
 
 auto Lambda = [](int a, float b) { std::cout << "Lambda called with int: " << a << " and float: " << b << std::endl; };

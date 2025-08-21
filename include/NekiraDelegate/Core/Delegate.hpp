@@ -116,10 +116,10 @@ class MultiDelegate final
 {
 private:
     // 多播信号实例
-    std::unique_ptr<MultiSignal<void, Args...>> Signal;
+    std::unique_ptr<MultiSignal<Args...>> Signal;
 
 public:
-    MultiDelegate() : Signal(std::make_unique<MultiSignal<void, Args...>>())
+    MultiDelegate() : Signal(std::make_unique<MultiSignal<Args...>>())
     {}
 
     // 是否有效
@@ -179,7 +179,7 @@ public:
 
     // 连接函数对象，lambda表达式
     template <typename Callable>
-        requires std::is_invocable_v<void, Callable, Args...>
+        requires std::is_invocable_r_v<void, Callable, Args...>
     MultiSignalHandle BindFunctionObject(Callable&& Func)
     {
         return Signal ? Signal->Connect(std::forward<Callable>(Func)) : MultiSignalHandle{};
