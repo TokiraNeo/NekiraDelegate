@@ -1,3 +1,5 @@
+## Code
+
 ```c++
 //@[INFO] Declare the MultiDelegate Type
 // NEKIRA_MULTI_DELEGATE(DelegateTypeName, ...)
@@ -84,4 +86,18 @@ int main()
 
     return 0;
 }
+```
+
+---
+
+## Output
+
+```cmd
+Lambda called with int: 15 and float: 9.52
+Lambda called with int: 15 and float: 9.52
+FuncObject called with int: 15 and float: 9.52
+RetObject called with int: 15 and float: 9.52
+FreeFunction called with int: 15 and float: 9.52
+SampleStruct Func called with int: 15 and float: 9.52
+SampleStruct ConstFunc called with int: 15 and float: 9.52
 ```
