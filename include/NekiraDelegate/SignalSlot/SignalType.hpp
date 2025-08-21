@@ -40,6 +40,7 @@ template <typename RT, typename... Args>
 class SingleSignal
 {
 private:
+    // 当前连接器
     std::shared_ptr<Connection<RT, Args...>> ConnectionPtr;
 
 public:
@@ -60,7 +61,7 @@ public:
     // 断开连接
     void Disconnect()
     {
-        if (IsValid())
+        if (ConnectionPtr)
         {
             ConnectionPtr->Disconnect();
             ConnectionPtr.reset();
@@ -74,7 +75,7 @@ public:
         ConnectionPtr = std::make_shared<Connection<RT, Args...>>(std::move(Func));
     }
 
-    // 连接普通成员函数,要求继承 ConnectionInterface接口
+    // 连接普通成员函数,要求继承 IConnectionInterface接口
     template <typename ClassType>
         requires std::is_base_of_v<IConnectionInterface, ClassType>
     void Connect(ClassType* Object, RT (ClassType::*FuncPtr)(Args...))
@@ -90,7 +91,7 @@ public:
         static_cast<IConnectionInterface*>(Object)->AddConnection(ConnectionPtr);
     }
 
-    // 连接const成员函数,要求继承 ConnectionInterface接口
+    // 连接const成员函数,要求继承 IConnectionInterface接口
     template <typename ClassType>
         requires std::is_base_of_v<IConnectionInterface, ClassType>
     void Connect(const ClassType* Object, RT (ClassType::*FuncPtr)(Args...) const)
@@ -148,6 +149,7 @@ private:
     using ConnectionType = Connection<void, Args...>;
     using ConnectionPair = std::pair<MultiSignalHandle, std::shared_ptr<ConnectionType>>;
 
+    // 存储连接器
     std::vector<ConnectionPair> ConnectionMap;
 
     std::size_t NextId = 0; // 用于生成唯一的连接ID
@@ -209,7 +211,7 @@ public:
         std::function<void(Args...)> Func = FuncPtr;
         auto                         NewConnection = std::make_shared<ConnectionType>(std::move(Func));
 
-        MultiSignalHandle Handler{this, NextId++};
+        MultiSignalHandle Handler{this, ++NextId};
 
         ConnectionPair Pair{Handler, std::move(NewConnection)};
 
@@ -218,7 +220,7 @@ public:
         return Handler;
     }
 
-    // 连接普通成员函数,要求继承 ConnectionInterface接口
+    // 连接普通成员函数,要求继承 IConnectionInterface接口
     template <typename ClassType>
         requires std::is_base_of_v<IConnectionInterface, ClassType>
     MultiSignalHandle Connect(ClassType* Object, void (ClassType::*FuncPtr)(Args...))
@@ -232,7 +234,7 @@ public:
         // 添加连接到对象的连接接口
         static_cast<IConnectionInterface*>(Object)->AddConnection(NewConnection);
 
-        MultiSignalHandle Handler{this, NextId++};
+        MultiSignalHandle Handler{this, ++NextId};
 
         ConnectionPair Pair{Handler, std::move(NewConnection)};
 
@@ -241,7 +243,7 @@ public:
         return Handler;
     }
 
-    // 连接const成员函数,要求继承 ConnectionInterface接口
+    // 连接const成员函数,要求继承 IConnectionInterface接口
     template <typename ClassType>
         requires std::is_base_of_v<IConnectionInterface, ClassType>
     MultiSignalHandle Connect(const ClassType* Object, void (ClassType::*FuncPtr)(Args...) const)
@@ -255,7 +257,7 @@ public:
         // 添加连接到对象的连接接口
         static_cast<const IConnectionInterface*>(Object)->AddConnection(NewConnection);
 
-        MultiSignalHandle Handler{this, NextId++};
+        MultiSignalHandle Handler{this, ++NextId};
 
         ConnectionPair Pair{Handler, std::move(NewConnection)};
 
@@ -273,7 +275,7 @@ public:
 
         auto NewConnection = std::make_shared<ConnectionType>(std::move(Func));
 
-        MultiSignalHandle Handler{this, NextId++};
+        MultiSignalHandle Handler{this, ++NextId};
 
         ConnectionPair Pair{Handler, std::move(NewConnection)};
 

@@ -33,7 +33,7 @@
 namespace NekiraDelegate
 {
 
-// 基础的连接器
+// 基础的连接器，只暴露断开连接与检查连接有效性的接口
 class ConnectionBase
 {
 public:
