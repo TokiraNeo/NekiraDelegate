@@ -1,3 +1,5 @@
+## Code
+
 ```c++
 //@[INFO] Declare the SingleDelegate Type
 //@[INFO] NEKIRA_SINGLE_DELEGATE(DelegateTypeName, ReturnType, ...)
@@ -72,4 +74,16 @@ int main()
     return 0;
 
 }
+```
+
+---
+
+## Output
+
+```cmd
+Lambda called with int: 42 and float: 3.14
+FreeFunction called with int: 24 and float: 1.59
+FuncObject called with int: 7 and float: 1.41
+SampleStruct Func called with int: 8 and float: 1.73
+SampleStruct ConstFunc called with int: 10 and float: 2.23
 ```
