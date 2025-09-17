@@ -41,8 +41,6 @@ cmake --install build [--prefix] [install_dir]
 
 ## 🔗 使用
 
-- 在 NekiraDelegateLib 的安装目录中，bin 文件夹里可以看到 NekiraDelegateLib 构建产出的两个动态库：`libDelegateCore.dll`和`libSignalSlot.dll`。在实际使用时，需要将这两个动态库拷贝到你的可执行目标同目录。
-
 - 在 cmake 中配置使用 NekiraDelegateLib：
 
 ```cmake

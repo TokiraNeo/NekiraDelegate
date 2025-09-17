@@ -41,8 +41,6 @@ cmake --install build [--prefix] [install_dir]
 
 ## 🔗 Usage
 
-- In the installation directory of NekiraDelegateLib, you can find two dynamic libraries in the bin folder: `libDelegateCore.dll` and `libSignalSlot.dll`. When using, copy these two DLLs to the same directory as your executable target.
-
 - Configure NekiraDelegateLib in your cmake project:
 
 ```cmake
