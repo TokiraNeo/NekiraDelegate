@@ -26,6 +26,13 @@
 
 namespace NekiraDelegate
 {
+
+IConnectionInterface::~IConnectionInterface()
+{
+    // 在析构时清理所有连接
+    DisconnectAll();
+}
+
 // 添加连接
 void IConnectionInterface::AddConnection(std::shared_ptr<ConnectionBase> InConnection) const
 {
