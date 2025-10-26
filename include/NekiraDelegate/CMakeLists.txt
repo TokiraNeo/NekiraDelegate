@@ -4,9 +4,6 @@
 
 include(GNUInstallDirs)
 
-
-
-
 # =====================================================
 # SignalSlot Module
 # =====================================================
@@ -42,23 +39,20 @@ install(FILES ${SIGNALSLOT_HEADERS}
 
 # headers
 file(GLOB_RECURSE CORE_HEADERS "Core/*.hpp")
-file(GLOB_RECURSE CORE_SOURCES "${CMAKE_SOURCE_DIR}/source/Core/*.cpp")
 
 # Core library
-add_library(DelegateCore STATIC ${CORE_HEADERS} ${CORE_SOURCES})
+add_library(DelegateCore INTERFACE ${CORE_HEADERS})
 
 # include directories
 target_include_directories(DelegateCore
-    PUBLIC
+    INTERFACE
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/Core
 )
 
 # link libraries
-target_link_libraries(DelegateCore PUBLIC SignalSlot)
+target_link_libraries(DelegateCore INTERFACE SignalSlot)
 
 # install headers
 install(FILES ${CORE_HEADERS}
