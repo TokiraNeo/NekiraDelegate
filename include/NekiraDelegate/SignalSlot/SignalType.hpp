@@ -26,8 +26,11 @@
 
 #include <NekiraDelegate/SignalSlot/Connection.hpp>
 #include <algorithm>
+#include <atomic>
 #include <functional>
 #include <memory>
+#include <mutex>
+#include <shared_mutex>
 #include <type_traits>
 #include <vector>
 
@@ -43,6 +46,9 @@ private:
     // 当前连接器
     std::shared_ptr<Connection<RT, Args...>> ConnectionPtr;
 
+    // 读写锁
+    mutable std::shared_mutex Mutex;
+
 public:
     SingleSignal() = default;
     ~SingleSignal()
@@ -53,38 +59,44 @@ public:
     SingleSignal(const SingleSignal&) = delete;
     SingleSignal& operator=(const SingleSignal&) = delete;
 
-    SingleSignal(SingleSignal&& other) noexcept
-        : ConnectionPtr(std::move(other.ConnectionPtr))
-    {
-        other.ConnectionPtr = nullptr;
-    }
-
-    SingleSignal& operator=(SingleSignal&& other) noexcept
-    {
-        if (this != &other)
-        {
-            Disconnect();
-            ConnectionPtr       = std::move(other.ConnectionPtr);
-            other.ConnectionPtr = nullptr;
-        }
-        return *this;
-    }
+    SingleSignal(SingleSignal&&) noexcept = delete;
+    SingleSignal& operator=(SingleSignal&&) noexcept = delete;
 
     // 是否有效的连接
     [[nodiscard]] bool IsValid() const
     {
+        // 读时使用共享锁
+        std::shared_lock<std::shared_mutex> Lock(Mutex);
+
         return ConnectionPtr && ConnectionPtr->IsValid();
     }
 
     // 执行连接的回调
-    RT Invoke(Args&&... args)
+    RT Invoke(Args... args)
     {
-        return IsValid() ? ConnectionPtr->Invoke(std::forward<Args>(args)...) : RT{};
+        // 调用时使用共享锁，并且拷贝一份副本
+        std::shared_ptr<Connection<RT, Args...>> CopyConnectionPtr;
+
+        {
+            std::shared_lock<std::shared_mutex> Lock(Mutex);
+
+            if (ConnectionPtr == nullptr)
+            {
+                return RT{};
+            }
+
+            CopyConnectionPtr = ConnectionPtr;
+        }
+
+        return CopyConnectionPtr->Invoke(args...);
     }
 
     // 断开连接
     void Disconnect()
     {
+        // 写时使用独占锁
+        std::unique_lock<std::shared_mutex> Lock(Mutex);
+
         if (ConnectionPtr)
         {
             ConnectionPtr->Disconnect();
@@ -96,7 +108,20 @@ public:
     void Connect(RT (*FuncPtr)(Args...))
     {
         std::function<RT(Args...)> Func = FuncPtr;
-        ConnectionPtr = std::make_shared<Connection<RT, Args...>>(std::move(Func));
+
+        auto NewConnectionPtr = std::make_shared<Connection<RT, Args...>>(std::move(Func));
+
+        // 写时使用独占锁
+        std::unique_lock<std::shared_mutex> Lock(Mutex);
+
+        // 断开旧连接
+        if (ConnectionPtr)
+        {
+            ConnectionPtr->Disconnect();
+        }
+
+        // 设置新连接
+        ConnectionPtr = std::move(NewConnectionPtr);
     }
 
     // 连接普通成员函数,要求继承 IConnectionInterface接口
@@ -104,15 +129,26 @@ public:
         requires std::is_base_of_v<IConnectionInterface, ClassType>
     void Connect(ClassType* Object, RT (ClassType::*FuncPtr)(Args...))
     {
-        auto Lambda = [Object, FuncPtr](Args&&... args) -> RT
-        { return (Object->*FuncPtr)(std::forward<Args>(args)...); };
+        auto Lambda = [Object, FuncPtr](Args... args) -> RT { return (Object->*FuncPtr)(args...); };
 
-        std::function<RT(Args...)> Func = Lambda;
+        std::function<RT(Args...)> Func = std::move(Lambda);
 
-        ConnectionPtr = std::make_shared<Connection<RT, Args...>>(std::move(Func));
+        auto NewConnectionPtr = std::make_shared<Connection<RT, Args...>>(std::move(Func));
 
         // 添加连接到对象的连接接口
-        static_cast<IConnectionInterface*>(Object)->AddConnection(ConnectionPtr);
+        static_cast<IConnectionInterface*>(Object)->AddConnection(NewConnectionPtr);
+
+        // 写时使用独占锁
+        std::unique_lock<std::shared_mutex> Lock(Mutex);
+
+        // 断开旧连接
+        if (ConnectionPtr)
+        {
+            ConnectionPtr->Disconnect();
+        }
+
+        // 设置新连接
+        ConnectionPtr = std::move(NewConnectionPtr);
     }
 
     // 连接const成员函数,要求继承 IConnectionInterface接口
@@ -120,15 +156,26 @@ public:
         requires std::is_base_of_v<IConnectionInterface, ClassType>
     void Connect(const ClassType* Object, RT (ClassType::*FuncPtr)(Args...) const)
     {
-        auto Lambda = [Object, FuncPtr](Args&&... args) -> RT
-        { return (Object->*FuncPtr)(std::forward<Args>(args)...); };
+        auto Lambda = [Object, FuncPtr](Args... args) -> RT { return (Object->*FuncPtr)(args...); };
 
-        std::function<RT(Args...)> Func = Lambda;
+        std::function<RT(Args...)> Func = std::move(Lambda);
 
-        ConnectionPtr = std::make_shared<Connection<RT, Args...>>(std::move(Func));
+        auto NewConnectionPtr = std::make_shared<Connection<RT, Args...>>(std::move(Func));
 
         // 添加连接到对象的连接接口
-        static_cast<const IConnectionInterface*>(Object)->AddConnection(ConnectionPtr);
+        static_cast<const IConnectionInterface*>(Object)->AddConnection(NewConnectionPtr);
+
+        // 写时使用独占锁
+        std::unique_lock<std::shared_mutex> Lock(Mutex);
+
+        // 断开旧连接
+        if (ConnectionPtr)
+        {
+            ConnectionPtr->Disconnect();
+        }
+
+        // 设置新连接
+        ConnectionPtr = std::move(NewConnectionPtr);
     }
 
     // 连接函数对象、lambda表达式
@@ -138,7 +185,19 @@ public:
     {
         std::function<RT(Args...)> Func = std::forward<Callable>(CallableObj);
 
-        ConnectionPtr = std::make_shared<Connection<RT, Args...>>(std::move(Func));
+        auto NewConnectionPtr = std::make_shared<Connection<RT, Args...>>(std::move(Func));
+
+        // 写时使用独占锁
+        std::unique_lock<std::shared_mutex> Lock(Mutex);
+
+        // 断开旧连接
+        if (ConnectionPtr)
+        {
+            ConnectionPtr->Disconnect();
+        }
+
+        // 设置新连接
+        ConnectionPtr = std::move(NewConnectionPtr);
     }
 };
 
@@ -154,11 +213,8 @@ struct MultiSignalHandle final
     MultiSignalHandle() = default;
     ~MultiSignalHandle() = default;
 
-    MultiSignalHandle(void* InSignalPtr, std::size_t InId)
-        : SignalPtr(InSignalPtr)
-        , Id(InId)
-    {
-    }
+    MultiSignalHandle(void* InSignalPtr, std::size_t InId) : SignalPtr(InSignalPtr), Id(InId)
+    {}
 
     MultiSignalHandle(const MultiSignalHandle&) = default;
     MultiSignalHandle(MultiSignalHandle&&) = default;
@@ -196,7 +252,11 @@ private:
     // 存储连接器
     std::vector<ConnectionPair> ConnectionMap;
 
-    std::size_t NextId = 0; // 用于生成唯一的连接ID
+    // 用于生成唯一的连接ID
+    std::atomic<std::size_t> NextId{0};
+
+    // 读写锁
+    mutable std::shared_mutex Mutex;
 
 public:
     MultiSignal() = default;
@@ -208,47 +268,39 @@ public:
     MultiSignal(const MultiSignal&) = delete;
     MultiSignal& operator=(const MultiSignal&) = delete;
 
-    MultiSignal(MultiSignal&& other) noexcept
-        : ConnectionMap(std::move(other.ConnectionMap))
-        , NextId(other.NextId)
-    {
-        other.NextId = 0;
-    }
-
-    MultiSignal& operator=(MultiSignal&& other) noexcept
-    {
-        if (this != &other)
-        {
-            DisconnectAll();
-            ConnectionMap = std::move(other.ConnectionMap);
-            NextId        = other.NextId;
-            other.NextId  = 0;
-        }
-        return *this;
-    }
-
+    MultiSignal(MultiSignal&&) noexcept = delete;
+    MultiSignal& operator=(MultiSignal&&) noexcept = delete;
 
     // 是否有效
     [[nodiscard]] bool IsValid() const
     {
+        // 读时使用共享锁
+        std::shared_lock<std::shared_mutex> Lock(Mutex);
+
         return !ConnectionMap.empty();
     }
 
     // 执行所有连接的回调
-    void Invoke(Args&&... args)
+    void Invoke(Args... args)
     {
-        // 清理无效连接
+        // 清理无效连接(独占锁)
         Cleanup();
+
+        // 读时使用共享锁
+        std::shared_lock<std::shared_mutex> Lock(Mutex);
 
         for (auto& Pair : ConnectionMap)
         {
-            Pair.second->Invoke(std::forward<Args>(args)...);
+            Pair.second->Invoke(args...);
         }
     }
 
     // 断开特定连接
     void DisconnectSingle(const MultiSignalHandle& Handle)
     {
+        // 写时使用独占锁
+        std::unique_lock<std::shared_mutex> Lock(Mutex);
+
         const auto It = std::remove_if(ConnectionMap.begin(), ConnectionMap.end(),
                                        [&Handle](const ConnectionPair& Pair) { return Pair.first == Handle; });
 
@@ -265,6 +317,9 @@ public:
     // 断开所有连接
     void DisconnectAll()
     {
+        // 写时使用独占锁
+        std::unique_lock<std::shared_mutex> Lock(Mutex);
+
         for (auto& Pair : ConnectionMap)
         {
             if (Pair.second)
@@ -280,12 +335,17 @@ public:
     MultiSignalHandle Connect(void (*FuncPtr)(Args...))
     {
         std::function<void(Args...)> Func = FuncPtr;
-        auto                         NewConnection = std::make_shared<ConnectionType>(std::move(Func));
+
+        auto NewConnection = std::make_shared<ConnectionType>(std::move(Func));
 
         MultiSignalHandle Handler{this, ++NextId};
 
         ConnectionPair Pair{Handler, std::move(NewConnection)};
 
+        // 写时使用独占锁
+        std::unique_lock<std::shared_mutex> Lock(Mutex);
+
+        // 添加连接
         ConnectionMap.push_back(std::move(Pair));
 
         return Handler;
@@ -296,9 +356,9 @@ public:
         requires std::is_base_of_v<IConnectionInterface, ClassType>
     MultiSignalHandle Connect(ClassType* Object, void (ClassType::*FuncPtr)(Args...))
     {
-        auto Lambda = [Object, FuncPtr](Args&&... args) { (Object->*FuncPtr)(std::forward<Args>(args)...); };
+        auto Lambda = [Object, FuncPtr](Args... args) { (Object->*FuncPtr)(std::forward<Args>(args)...); };
 
-        std::function<void(Args...)> Func = Lambda;
+        std::function<void(Args...)> Func = std::move(Lambda);
 
         auto NewConnection = std::make_shared<ConnectionType>(std::move(Func));
 
@@ -309,6 +369,10 @@ public:
 
         ConnectionPair Pair{Handler, std::move(NewConnection)};
 
+        // 写时使用独占锁
+        std::unique_lock<std::shared_mutex> Lock(Mutex);
+
+        // 添加连接
         ConnectionMap.push_back(std::move(Pair));
 
         return Handler;
@@ -319,9 +383,9 @@ public:
         requires std::is_base_of_v<IConnectionInterface, ClassType>
     MultiSignalHandle Connect(const ClassType* Object, void (ClassType::*FuncPtr)(Args...) const)
     {
-        auto Lambda = [Object, FuncPtr](Args&&... args) { (Object->*FuncPtr)(std::forward<Args>(args)...); };
+        auto Lambda = [Object, FuncPtr](Args... args) { (Object->*FuncPtr)(std::forward<Args>(args)...); };
 
-        std::function<void(Args...)> Func = Lambda;
+        std::function<void(Args...)> Func = std::move(Lambda);
 
         auto NewConnection = std::make_shared<ConnectionType>(std::move(Func));
 
@@ -332,6 +396,10 @@ public:
 
         ConnectionPair Pair{Handler, std::move(NewConnection)};
 
+        // 写时使用独占锁
+        std::unique_lock<std::shared_mutex> Lock(Mutex);
+
+        // 添加连接
         ConnectionMap.push_back(std::move(Pair));
 
         return Handler;
@@ -350,6 +418,10 @@ public:
 
         ConnectionPair Pair{Handler, std::move(NewConnection)};
 
+        // 写时使用独占锁
+        std::unique_lock<std::shared_mutex> Lock(Mutex);
+
+        // 添加连接
         ConnectionMap.push_back(std::move(Pair));
 
         return Handler;
@@ -359,6 +431,9 @@ private:
     // 清理无效的连接
     void Cleanup()
     {
+        // 写时使用独占锁
+        std::unique_lock<std::shared_mutex> Lock(Mutex);
+
         const auto It = std::remove_if(ConnectionMap.begin(), ConnectionMap.end(),
                                        [](const auto& Pair) { return !Pair.second || !Pair.second->IsValid(); });
 
