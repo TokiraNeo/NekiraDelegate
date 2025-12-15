@@ -23,6 +23,8 @@
  */
 
 #include <Connection.hpp>
+#include <memory>
+#include <mutex>
 
 namespace NekiraDelegate
 {
@@ -38,6 +40,8 @@ void IConnectionInterface::AddConnection(std::shared_ptr<ConnectionBase> InConne
 {
     if (InConnection && InConnection->IsValid())
     {
+        // 写时使用独占锁
+        std::lock_guard<std::mutex> Lock(Mutex);
         Connections.push_back(InConnection);
     }
 }
@@ -45,15 +49,25 @@ void IConnectionInterface::AddConnection(std::shared_ptr<ConnectionBase> InConne
 // 断开所有连接
 void IConnectionInterface::DisconnectAll() const
 {
-    for (const auto& WeakConnection : Connections)
+    std::vector<std::weak_ptr<ConnectionBase>> TempConnections;
+
+    // 写时使用独占锁。为了避免在删除时有新的连接添加进来，这里拷贝一份副本
+    {
+        std::lock_guard<std::mutex> Lock(Mutex);
+
+        TempConnections = std::move(Connections);
+
+        Connections.clear();
+    }
+
+    // 断开所有连接
+    for (const auto& WeakConnection : TempConnections)
     {
         if (auto Ptr = WeakConnection.lock())
         {
             Ptr->Disconnect();
         }
     }
-
-    Connections.clear();
 }
 
 } // namespace NekiraDelegate

@@ -24,8 +24,11 @@
 
 #pragma once
 
+#include <atomic>
 #include <functional>
 #include <memory>
+#include <mutex>
+#include <shared_mutex>
 #include <utility>
 #include <vector>
 
@@ -69,13 +72,16 @@ private:
     std::function<RT(Args...)> Callback;
 
     // 是否有效的标志
-    bool bIsValidConnected {false};
+    std::atomic<bool> IsValidConnected{false};
+
+    // 保护共享资源的读写锁
+    mutable std::shared_mutex Mutex;
 
 public:
     Connection() = default;
-     ~Connection() override = default;
+    ~Connection() override = default;
 
-    explicit Connection(std::function<RT(Args...)> InCallback) : Callback(std::move(InCallback)), bIsValidConnected(true)
+    explicit Connection(std::function<RT(Args...)> InCallback) : Callback(std::move(InCallback)), IsValidConnected(true)
     {}
 
     Connection(const Connection&) = default;
@@ -87,20 +93,41 @@ public:
     // 检查连接是否有效
     [[nodiscard]] bool IsValid() const override
     {
-        return bIsValidConnected && Callback != nullptr;
+        // 仅读时使用共享锁
+        std::shared_lock<std::shared_mutex> Lock(Mutex);
+        return IsValidConnected && Callback != nullptr;
     }
 
     // 断开连接
     void Disconnect() override
     {
-        bIsValidConnected = false;
-        Callback = nullptr;
+        // 写时使用独占锁
+        std::unique_lock<std::shared_mutex> Lock(Mutex);
+
+        if (IsValidConnected.exchange(false))
+        {
+            Callback = nullptr;
+        }
     }
 
     // 调用连接的回调
-    RT Invoke(Args&&... args)
+    RT Invoke(Args... args)
     {
-        return IsValid() ? Callback(std::forward<Args>(args)...) : RT{};
+        // 调用回调时使用共享锁,这里为了安全，拷贝一份回调副本
+        std::function<RT(Args...)> CopyCallback;
+
+        {
+            std::shared_lock<std::shared_mutex> Lock(Mutex);
+
+            if (!IsValidConnected.load() || Callback == nullptr)
+            {
+                return RT{};
+            }
+
+            CopyCallback = Callback;
+        }
+
+        return CopyCallback(args...);
     }
 };
 
@@ -116,16 +143,19 @@ private:
     // 存储连接的容器
     mutable std::vector<std::weak_ptr<ConnectionBase>> Connections;
 
+    // 互斥锁
+    mutable std::mutex Mutex;
+
 public:
     IConnectionInterface() = default;
 
     virtual ~IConnectionInterface();
 
-    IConnectionInterface(const IConnectionInterface&) = default;
-    IConnectionInterface(IConnectionInterface&&) noexcept = default;
+    IConnectionInterface(const IConnectionInterface&) = delete;
+    IConnectionInterface(IConnectionInterface&&) noexcept = delete;
 
-    IConnectionInterface& operator=(const IConnectionInterface&) = default;
-    IConnectionInterface& operator=(IConnectionInterface&&) noexcept = default;
+    IConnectionInterface& operator=(const IConnectionInterface&) = delete;
+    IConnectionInterface& operator=(IConnectionInterface&&) noexcept = delete;
 
     // 添加连接.这里使用const是为了确保即便对象是const类型也能正常添加连接，对连接器的自动管理不受影响
     void AddConnection(std::shared_ptr<ConnectionBase> InConnection) const;
