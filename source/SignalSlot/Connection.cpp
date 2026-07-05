@@ -38,10 +38,10 @@ IConnectionInterface::~IConnectionInterface()
 // 添加连接
 void IConnectionInterface::AddConnection(std::shared_ptr<ConnectionBase> InConnection) const
 {
+    std::lock_guard<std::mutex> Lock(Mutex);
+
     if (InConnection && InConnection->IsValid())
     {
-        // 写时使用独占锁
-        std::lock_guard<std::mutex> Lock(Mutex);
         Connections.push_back(InConnection);
     }
 }
@@ -56,8 +56,6 @@ void IConnectionInterface::DisconnectAll() const
         std::lock_guard<std::mutex> Lock(Mutex);
 
         TempConnections = std::move(Connections);
-
-        Connections.clear();
     }
 
     // 断开所有连接

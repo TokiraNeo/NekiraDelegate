@@ -65,42 +65,63 @@ public:
     // 是否有效的连接
     [[nodiscard]] bool IsValid() const
     {
-        // 读时使用共享锁
-        std::shared_lock<std::shared_mutex> Lock(Mutex);
+        std::shared_ptr<Connection<RT, Args...>> CopyConnectionPtr;
 
-        return ConnectionPtr && ConnectionPtr->IsValid();
+        {
+            // 先在信号层拿到稳定的连接副本，再到连接层判断有效性
+            std::shared_lock<std::shared_mutex> Lock(Mutex);
+            CopyConnectionPtr = ConnectionPtr;
+        }
+
+        return CopyConnectionPtr && CopyConnectionPtr->IsValid();
     }
 
     // 执行连接的回调
     RT Invoke(Args... args)
     {
-        // 调用时使用共享锁，并且拷贝一份副本
         std::shared_ptr<Connection<RT, Args...>> CopyConnectionPtr;
 
         {
             std::shared_lock<std::shared_mutex> Lock(Mutex);
 
-            if (ConnectionPtr == nullptr)
+            if (!IsValid())
             {
-                return RT{};
+                if constexpr (std::is_void_v<RT>)
+                {
+                    return;
+                }
+                else
+                {
+                    return RT{};
+                }
             }
 
             CopyConnectionPtr = ConnectionPtr;
         }
 
-        return CopyConnectionPtr->Invoke(args...);
+        if constexpr (std::is_void_v<RT>)
+        {
+            CopyConnectionPtr->Invoke(args...);
+        }
+        else
+        {
+            return CopyConnectionPtr->Invoke(args...);
+        }
     }
 
     // 断开连接
     void Disconnect()
     {
-        // 写时使用独占锁
-        std::unique_lock<std::shared_mutex> Lock(Mutex);
+        std::shared_ptr<Connection<RT, Args...>> OldConnectionPtr;
 
-        if (ConnectionPtr)
         {
-            ConnectionPtr->Disconnect();
-            ConnectionPtr.reset();
+            std::unique_lock<std::shared_mutex> Lock(Mutex);
+            OldConnectionPtr = std::move(ConnectionPtr);
+        }
+
+        if (OldConnectionPtr)
+        {
+            OldConnectionPtr->Disconnect();
         }
     }
 
@@ -110,18 +131,20 @@ public:
         std::function<RT(Args...)> Func = FuncPtr;
 
         auto NewConnectionPtr = std::make_shared<Connection<RT, Args...>>(std::move(Func));
+        std::shared_ptr<Connection<RT, Args...>> OldConnectionPtr;
 
-        // 写时使用独占锁
-        std::unique_lock<std::shared_mutex> Lock(Mutex);
-
-        // 断开旧连接
-        if (ConnectionPtr)
         {
-            ConnectionPtr->Disconnect();
+            std::unique_lock<std::shared_mutex> Lock(Mutex);
+
+            // 先替换掉旧连接，避免持有信号锁时执行断开逻辑
+            OldConnectionPtr = std::move(ConnectionPtr);
+            ConnectionPtr = std::move(NewConnectionPtr);
         }
 
-        // 设置新连接
-        ConnectionPtr = std::move(NewConnectionPtr);
+        if (OldConnectionPtr)
+        {
+            OldConnectionPtr->Disconnect();
+        }
     }
 
     // 连接普通成员函数,要求继承 IConnectionInterface接口
@@ -134,21 +157,24 @@ public:
         std::function<RT(Args...)> Func = std::move(Lambda);
 
         auto NewConnectionPtr = std::make_shared<Connection<RT, Args...>>(std::move(Func));
+        std::shared_ptr<Connection<RT, Args...>> OldConnectionPtr;
 
         // 添加连接到对象的连接接口
         static_cast<IConnectionInterface*>(Object)->AddConnection(NewConnectionPtr);
 
-        // 写时使用独占锁
-        std::unique_lock<std::shared_mutex> Lock(Mutex);
-
-        // 断开旧连接
-        if (ConnectionPtr)
         {
-            ConnectionPtr->Disconnect();
+            // 写时使用独占锁
+            std::unique_lock<std::shared_mutex> Lock(Mutex);
+
+            // 先替换掉旧连接，避免持有信号锁时执行断开逻辑
+            OldConnectionPtr = std::move(ConnectionPtr);
+            ConnectionPtr = std::move(NewConnectionPtr);
         }
 
-        // 设置新连接
-        ConnectionPtr = std::move(NewConnectionPtr);
+        if (OldConnectionPtr)
+        {
+            OldConnectionPtr->Disconnect();
+        }
     }
 
     // 连接const成员函数,要求继承 IConnectionInterface接口
@@ -161,21 +187,24 @@ public:
         std::function<RT(Args...)> Func = std::move(Lambda);
 
         auto NewConnectionPtr = std::make_shared<Connection<RT, Args...>>(std::move(Func));
+        std::shared_ptr<Connection<RT, Args...>> OldConnectionPtr;
 
         // 添加连接到对象的连接接口
         static_cast<const IConnectionInterface*>(Object)->AddConnection(NewConnectionPtr);
 
-        // 写时使用独占锁
-        std::unique_lock<std::shared_mutex> Lock(Mutex);
-
-        // 断开旧连接
-        if (ConnectionPtr)
         {
-            ConnectionPtr->Disconnect();
+            // 写时使用独占锁
+            std::unique_lock<std::shared_mutex> Lock(Mutex);
+
+            // 先替换掉旧连接，避免持有信号锁时执行断开逻辑
+            OldConnectionPtr = std::move(ConnectionPtr);
+            ConnectionPtr = std::move(NewConnectionPtr);
         }
 
-        // 设置新连接
-        ConnectionPtr = std::move(NewConnectionPtr);
+        if (OldConnectionPtr)
+        {
+            OldConnectionPtr->Disconnect();
+        }
     }
 
     // 连接函数对象、lambda表达式
@@ -186,18 +215,21 @@ public:
         std::function<RT(Args...)> Func = std::forward<Callable>(CallableObj);
 
         auto NewConnectionPtr = std::make_shared<Connection<RT, Args...>>(std::move(Func));
+        std::shared_ptr<Connection<RT, Args...>> OldConnectionPtr;
 
-        // 写时使用独占锁
-        std::unique_lock<std::shared_mutex> Lock(Mutex);
-
-        // 断开旧连接
-        if (ConnectionPtr)
         {
-            ConnectionPtr->Disconnect();
+            // 写时使用独占锁
+            std::unique_lock<std::shared_mutex> Lock(Mutex);
+
+            // 先替换掉旧连接，避免持有信号锁时执行断开逻辑
+            OldConnectionPtr = std::move(ConnectionPtr);
+            ConnectionPtr = std::move(NewConnectionPtr);
         }
 
-        // 设置新连接
-        ConnectionPtr = std::move(NewConnectionPtr);
+        if (OldConnectionPtr)
+        {
+            OldConnectionPtr->Disconnect();
+        }
     }
 };
 
@@ -283,52 +315,91 @@ public:
     // 执行所有连接的回调
     void Invoke(Args... args)
     {
-        // 清理无效连接(独占锁)
-        Cleanup();
+        std::vector<std::shared_ptr<ConnectionType>> ActiveConnections;
 
-        // 读时使用共享锁
-        std::shared_lock<std::shared_mutex> Lock(Mutex);
-
-        for (auto& Pair : ConnectionMap)
         {
-            Pair.second->Invoke(args...);
+            // 先在独占锁内清理无效连接并收集当前快照，随后再执行回调，缩短锁持有时间
+            std::unique_lock<std::shared_mutex> Lock(Mutex);
+
+            const auto It = std::remove_if(ConnectionMap.begin(), ConnectionMap.end(),
+                                           [](const auto& Pair) { return !Pair.second || !Pair.second->IsValid(); });
+
+            ConnectionMap.erase(It, ConnectionMap.end());
+
+            ActiveConnections.reserve(ConnectionMap.size());
+            for (auto& Pair : ConnectionMap)
+            {
+                ActiveConnections.push_back(Pair.second);
+            }
+        }
+
+        for (auto& Connection : ActiveConnections)
+        {
+            if (Connection)
+            {
+                Connection->Invoke(args...);
+            }
         }
     }
 
     // 断开特定连接
     void DisconnectSingle(const MultiSignalHandle& Handle)
     {
-        // 写时使用独占锁
+        std::vector<std::shared_ptr<ConnectionType>> RemovedConnections;
+
         std::unique_lock<std::shared_mutex> Lock(Mutex);
 
         const auto It = std::remove_if(ConnectionMap.begin(), ConnectionMap.end(),
-                                       [&Handle](const ConnectionPair& Pair) { return Pair.first == Handle; });
+                                       [&Handle, &RemovedConnections](const ConnectionPair& Pair) {
+                                           if (Pair.first != Handle)
+                                           {
+                                               return false;
+                                           }
+
+                                           if (Pair.second)
+                                           {
+                                               RemovedConnections.push_back(Pair.second);
+                                           }
+
+                                           return true;
+                                       });
 
         if (It != ConnectionMap.end())
         {
-            if (It->second)
-            {
-                It->second->Disconnect();
-            }
             ConnectionMap.erase(It, ConnectionMap.end());
+        }
+
+        Lock.unlock();
+
+        for (auto& Connection : RemovedConnections)
+        {
+            Connection->Disconnect();
         }
     }
 
     // 断开所有连接
     void DisconnectAll()
     {
-        // 写时使用独占锁
+        std::vector<std::shared_ptr<ConnectionType>> RemovedConnections;
+
         std::unique_lock<std::shared_mutex> Lock(Mutex);
 
         for (auto& Pair : ConnectionMap)
         {
             if (Pair.second)
             {
-                Pair.second->Disconnect();
+                RemovedConnections.push_back(Pair.second);
             }
         }
 
         ConnectionMap.clear();
+
+        Lock.unlock();
+
+        for (auto& Connection : RemovedConnections)
+        {
+            Connection->Disconnect();
+        }
     }
 
     // 连接普通函数
@@ -427,18 +498,6 @@ public:
         return Handler;
     }
 
-private:
-    // 清理无效的连接
-    void Cleanup()
-    {
-        // 写时使用独占锁
-        std::unique_lock<std::shared_mutex> Lock(Mutex);
-
-        const auto It = std::remove_if(ConnectionMap.begin(), ConnectionMap.end(),
-                                       [](const auto& Pair) { return !Pair.second || !Pair.second->IsValid(); });
-
-        ConnectionMap.erase(It, ConnectionMap.end());
-    }
 };
 
 } // namespace NekiraDelegate

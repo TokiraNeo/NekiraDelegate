@@ -24,11 +24,10 @@
 
 #pragma once
 
-#include <atomic>
 #include <functional>
 #include <memory>
 #include <mutex>
-#include <shared_mutex>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -68,14 +67,13 @@ class Connection final : public ConnectionBase
 {
 private:
     // 使用 std::function 来存储连接的回调
-    // @[INFO] 当然，也可以使用类型擦除来自定义回调存储方式，这里先使用 std::function 简化实现
     std::function<RT(Args...)> Callback;
 
     // 是否有效的标志
-    std::atomic<bool> IsValidConnected{false};
+    bool IsValidConnected{false};
 
-    // 保护共享资源的读写锁
-    mutable std::shared_mutex Mutex;
+    // 保护共享资源的互斥锁
+    mutable std::mutex Mutex;
 
 public:
     Connection() = default;
@@ -93,19 +91,18 @@ public:
     // 检查连接是否有效
     [[nodiscard]] bool IsValid() const override
     {
-        // 仅读时使用共享锁
-        std::shared_lock<std::shared_mutex> Lock(Mutex);
+        std::lock_guard<std::mutex> Lock(Mutex);
         return IsValidConnected && Callback != nullptr;
     }
 
     // 断开连接
     void Disconnect() override
     {
-        // 写时使用独占锁
-        std::unique_lock<std::shared_mutex> Lock(Mutex);
+        std::lock_guard<std::mutex> Lock(Mutex);
 
-        if (IsValidConnected.exchange(false))
+        if (IsValidConnected)
         {
+            IsValidConnected = false;
             Callback = nullptr;
         }
     }
@@ -117,17 +114,31 @@ public:
         std::function<RT(Args...)> CopyCallback;
 
         {
-            std::shared_lock<std::shared_mutex> Lock(Mutex);
+            std::lock_guard<std::mutex> Lock(Mutex);
 
-            if (!IsValidConnected.load() || Callback == nullptr)
+            if (!IsValidConnected || Callback == nullptr)
             {
-                return RT{};
+                if constexpr (std::is_void_v<RT>)
+                {
+                    return;
+                }
+                else
+                {
+                    return RT{};
+                }
             }
 
             CopyCallback = Callback;
         }
 
-        return CopyCallback(args...);
+        if constexpr (std::is_void_v<RT>)
+        {
+            CopyCallback(args...);
+        }
+        else
+        {
+            return CopyCallback(args...);
+        }
     }
 };
 

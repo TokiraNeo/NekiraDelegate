@@ -70,7 +70,26 @@ public:
     // 执行连接的回调
     RT Invoke(Args... args)
     {
-        return IsValid() ? Signal->Invoke(std::forward<Args>(args)...) : RT{};
+        if (!Signal)
+        {
+            if constexpr (!std::is_void_v<RT>)
+            {
+                return RT{};
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        if constexpr (std::is_void_v<RT>)
+        {
+            Signal->Invoke(std::forward<Args>(args)...);
+        }
+        else
+        {
+            return Signal->Invoke(std::forward<Args>(args)...);
+        }
     }
 
     // 断开连接
@@ -170,7 +189,7 @@ public:
     // 执行连接的回调
     void Invoke(Args... args)
     {
-        if (IsValid())
+        if (Signal)
         {
             Signal->Invoke(std::forward<Args>(args)...);
         }
@@ -225,5 +244,3 @@ public:
     }
 };
 } // namespace NekiraDelegate
-
-
